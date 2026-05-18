@@ -5,7 +5,6 @@ This section contains task-oriented guides for common runtime workflows.
 ## Runtime
 
 - [Run a policy on a robot](runtime/run-policy-on-robot.md)
-- [Use cameras](runtime/use-cameras.md)
 - [Use execution modes](runtime/use-execution-modes.md)
 - [Add runtime callbacks](runtime/add-runtime-callbacks.md)
 
