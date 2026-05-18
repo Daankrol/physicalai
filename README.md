@@ -234,7 +234,9 @@ model = InferenceModel.load(
 
 ## Policy Runtime
 
-The `PolicyRuntime` orchestrates the full control loop: connecting hardware, reading cameras, building observations, running inference, and dispatching actions to the robot. *(Planned API — documents target design.)*
+The `PolicyRuntime` orchestrates the full control loop: connecting hardware, reading cameras, building observations, running inference, and dispatching actions to the robot.
+
+> **Preview:**: This API is work in progress
 
 ```python
 from physicalai.runtime import PolicyRuntime, SyncExecution
@@ -258,6 +260,8 @@ runtime.run(duration_s=60)
 
 <details>
 <summary><strong>From YAML Config</strong></summary>
+
+> **Preview:**: This API is not yet implemented.
 
 ```python
 runtime = PolicyRuntime.from_config("runtime.yaml")
@@ -296,6 +300,8 @@ runtime:
 <details>
 <summary><strong>CLI</strong></summary>
 
+> **Preview:**: This API is not yet implemented.
+
 ```bash
 physicalai run --config runtime.yaml --duration-s 60
 ```
@@ -306,6 +312,8 @@ physicalai run --config runtime.yaml --duration-s 60
 <summary><strong>Async Execution</strong></summary>
 
 Async execution runs inference in a background thread while the main loop handles camera reads and robot commands at a fixed frequency. Useful when inference is slower than the control rate.
+
+> **Preview:**: This API is not yet implemented.
 
 ```python
 from physicalai.runtime import PolicyRuntime, AsyncExecution
@@ -327,6 +335,8 @@ runtime.run(duration_s=60)
 <summary><strong>Remote Execution</strong></summary>
 
 Remote execution sends observations to an inference server and receives actions over the network. Useful for running large models on a separate GPU machine.
+
+> **Preview:**: This API is not yet implemented.
 
 ```python
 from physicalai.runtime import PolicyRuntime, RemoteExecution
