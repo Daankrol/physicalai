@@ -1,5 +1,7 @@
 # Instantiate Components
 
+> **Preview:** The config system (`physicalai.config`) is a planned API. The examples below document the target design. Currently, `ComponentSpec` lives in `physicalai.inference.manifest`.
+
 A component spec describes one instantiable object.
 
 The most explicit form uses a class path.
@@ -24,7 +26,8 @@ height: 480
 You can construct and instantiate the same spec from Python.
 
 ```python
-from physicalai.config import ComponentSpec, instantiate_component
+from physicalai.inference.manifest import ComponentSpec
+from physicalai.inference.component_factory import instantiate_component
 
 spec = ComponentSpec(
     class_path="physicalai.capture.UVCCamera",

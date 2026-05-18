@@ -1,6 +1,6 @@
 # Use Execution Modes
 
-> **NOTE:** Execution implementation is currently work in progress.
+> **Preview:** `PolicyRuntime` and execution modes are planned APIs. The examples below document the target design.
 
 The `Execution` component decides where inference runs and how requests are scheduled.
 

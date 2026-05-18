@@ -1,6 +1,6 @@
 # CLI: Infer
 
-_(Planned API — interface may change.)_
+> **Preview:** The CLI is a planned API. The examples below document the target design.
 
 Run inference from a config or exported policy package.
 
@@ -14,7 +14,7 @@ Example config:
 model:
   class_path: physicalai.inference.InferenceModel
   init_args:
-    path: ./exports/act_policy
+    export_dir: ./exports/act_policy
     backend: openvino
     device: CPU
 ```
@@ -22,7 +22,7 @@ model:
 The Python equivalent:
 
 ```python
-model = InferenceModel.from_config("inference.yaml")
+model = InferenceModel.load("./exports/act_policy")
 action = model.select_action(observation)
 ```
 

@@ -6,7 +6,6 @@ PhysicalAI provides runtime components for working with exported robot policies.
 
 | I want to                              | Go to                                                   |
 | -------------------------------------- | ------------------------------------------------------- |
-| Understand the documentation structure | [Documentation Plan](documentation-plan.md)             |
 | Install the package                    | [Installation](getting-started/installation.md)         |
 | Run first inference                    | [Quickstart](getting-started/quickstart.md)             |
 | Run a policy on a robot                | [Run a Policy](getting-started/run-a-policy.md)         |
@@ -42,16 +41,19 @@ Python example:
 ```python
 from physicalai.inference import InferenceModel
 from physicalai.runtime import PolicyRuntime, SyncExecution
-from physicalai.robot.so101 import SO101
+from physicalai.robot import SO101
+from physicalai.capture import UVCCamera
 
 model = InferenceModel.load("./exports/act_policy")
 robot = SO101(port="/dev/ttyACM0")
+cameras = {"wrist": UVCCamera(device="/dev/video0", width=640, height=480)}
 
 runtime = PolicyRuntime(
+    fps=30,
     robot=robot,
     model=model,
+    cameras=cameras,
     execution=SyncExecution(mode="chunk"),
-    fps=30,
 )
 
 runtime.run(duration_s=60)
@@ -63,7 +65,8 @@ CLI example:
 physicalai run --config runtime.yaml --duration-s 60
 ```
 
+> **Note:** `PolicyRuntime` and the CLI are planned APIs. See [#121](https://github.com/openvinotoolkit/physicalai/issues/121) for status.
+
 ## Notes
 
-- The documentation structure and maintenance rules are recorded in [Documentation Plan](documentation-plan.md).
 - Detailed tradeoffs and phased design work remain in [Design Docs](design/README.md).

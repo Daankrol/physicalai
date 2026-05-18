@@ -1,5 +1,7 @@
 # Run a Policy on a Robot
 
+> **Preview:** `PolicyRuntime` and the CLI are planned APIs. The examples below document the target design.
+
 ## Python API
 
 ```python
@@ -38,7 +40,7 @@ runtime:
     model:
       class_path: physicalai.inference.InferenceModel
       init_args:
-        path: ./exports/act_policy
+        export_dir: ./exports/act_policy
     cameras:
       wrist:
         class_path: physicalai.capture.UVCCamera

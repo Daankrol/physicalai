@@ -1,5 +1,7 @@
 # CLI: Run
 
+> **Preview:** The CLI is a planned API. The examples below document the target design.
+
 Use this command to run a policy runtime from a YAML file.
 
 ```bash

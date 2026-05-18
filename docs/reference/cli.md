@@ -1,5 +1,7 @@
 # CLI Reference
 
+> **Preview:** The CLI is a planned API. The commands below document the target design.
+
 The runtime CLI commands use the same schemas as the Python APIs.
 
 ## `physicalai run`

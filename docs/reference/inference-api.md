@@ -22,8 +22,9 @@ The model can be constructed directly from an export directory or loaded from co
 
 ```python
 model = InferenceModel.load("./exports/act_policy")
-model = InferenceModel.from_config("inference.yaml")
 ```
+
+> **Note:** `InferenceModel.from_config()` is a planned API.
 
 ## Methods
 

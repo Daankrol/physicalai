@@ -61,10 +61,10 @@ with UVCCamera(device="/dev/video0", width=640, height=480, fps=30) as camera:
 ```python
 from physicalai.capture import RealSenseCamera
 
-with RealSenseCamera(serial="123456789", width=640, height=480, fps=30) as camera:
-    frame = camera.read_latest()
-    print(frame.data.shape)       # (480, 640, 3) RGB
-    print(frame.depth.shape)      # (480, 640) depth in mm
+with RealSenseCamera(serial_number="123456789", width=640, height=480, fps=30) as camera:
+    rgb, depth = camera.read_rgbd()
+    print(rgb.data.shape)    # (480, 640, 3) RGB
+    print(depth.data.shape)  # (480, 640) depth in mm
 ```
 
 </details>
@@ -75,7 +75,7 @@ with RealSenseCamera(serial="123456789", width=640, height=480, fps=30) as camer
 ```python
 from physicalai.capture import BaslerCamera
 
-with BaslerCamera(serial="12345678", width=1920, height=1080, fps=60) as camera:
+with BaslerCamera(serial_number="12345678", width=1920, height=1080, fps=60) as camera:
     frame = camera.read_latest()
     print(frame.data.shape)  # (1080, 1920, 3)
 ```
@@ -90,7 +90,7 @@ from physicalai.capture import UVCCamera, RealSenseCamera, read_cameras
 
 cameras = {
     "wrist": UVCCamera(device="/dev/video0"),
-    "overhead": RealSenseCamera(serial="123456789"),
+    "overhead": RealSenseCamera(serial_number="123456789"),
 }
 
 # Connect all
@@ -98,9 +98,9 @@ for cam in cameras.values():
     cam.connect()
 
 # Read from all cameras concurrently
-frames = read_cameras(cameras)
-print(frames["wrist"].data.shape)
-print(frames["overhead"].depth.shape)
+synced = read_cameras(cameras)
+print(synced.frames["wrist"].data.shape)
+print(synced.frames["overhead"].data.shape)
 
 # Cleanup
 for cam in cameras.values():
@@ -115,10 +115,11 @@ for cam in cameras.values():
 ```python
 from physicalai.capture import discover_all, UVCCamera
 
-# Discover all connected cameras
-devices = discover_all()
-for dev in devices:
-    print(f"{dev.camera_type}: {dev.device_id} - {dev.name}")
+# Discover all connected cameras (returns dict of camera_type -> list of devices)
+all_devices = discover_all()
+for camera_type, devices in all_devices.items():
+    for dev in devices:
+        print(f"{camera_type}: {dev.device_id} - {dev.name}")
 
 # Discover specific type
 uvc_devices = UVCCamera.discover()
@@ -281,7 +282,7 @@ runtime:
     model:
       class_path: physicalai.inference.InferenceModel
       init_args:
-        path: ./exports/act_policy
+        export_dir: ./exports/act_policy
     cameras:
       wrist:
         class_path: physicalai.capture.UVCCamera

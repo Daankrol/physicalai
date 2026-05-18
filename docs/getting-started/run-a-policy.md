@@ -1,5 +1,7 @@
 # Run a Policy
 
+> **Preview:** `PolicyRuntime` and the CLI are planned APIs. The examples below document the target design.
+
 Use `PolicyRuntime` to run a trained policy on real hardware. The runtime handles the control loop: reading cameras, building observations, running inference, and sending actions to the robot.
 
 ```python
@@ -45,7 +47,7 @@ runtime:
     model:
       class_path: physicalai.inference.InferenceModel
       init_args:
-        path: ./exports/act_policy
+        export_dir: ./exports/act_policy
     cameras:
       wrist:
         class_path: physicalai.capture.UVCCamera

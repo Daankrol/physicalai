@@ -1,5 +1,7 @@
 # Write Runtime Config
 
+> **Preview:** `PolicyRuntime` and the config system are planned APIs. The examples below document the target design.
+
 A runtime config describes a robot control workflow before execution starts.
 
 ```yaml
@@ -15,7 +17,7 @@ runtime:
     model:
       class_path: physicalai.inference.InferenceModel
       init_args:
-        path: ./exports/act_policy
+        export_dir: ./exports/act_policy
     cameras:
       wrist:
         class_path: physicalai.capture.UVCCamera

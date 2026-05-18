@@ -1,5 +1,7 @@
 # CLI
 
+> **Preview:** The CLI is a planned API. The content below documents the target design.
+
 The CLI is a thin wrapper over the same config APIs used by Python.
 
 ```bash

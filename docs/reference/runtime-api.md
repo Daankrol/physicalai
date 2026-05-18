@@ -1,5 +1,7 @@
 # Runtime API Reference
 
+> **Preview:** `PolicyRuntime` and related APIs are planned. The signatures below document the target design.
+
 ## `PolicyRuntime`
 
 `PolicyRuntime` is the main orchestrator for running a policy on hardware.

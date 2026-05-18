@@ -1,5 +1,7 @@
 # Runtime
 
+> **Preview:** `PolicyRuntime` is a planned API. The content below documents the target design.
+
 `PolicyRuntime` runs a policy on robot hardware. It owns the control loop, the callback lifecycle, and the interaction between observations, inference requests, and actions.
 
 ```python

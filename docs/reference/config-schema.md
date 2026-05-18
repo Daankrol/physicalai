@@ -1,5 +1,7 @@
 # Config Schema Reference
 
+> **Preview:** The config system and `PolicyRuntime` are planned APIs. The schemas below document the target design.
+
 Config files use `class_path` and `init_args` to describe explicit component construction.
 
 ## ComponentSpec

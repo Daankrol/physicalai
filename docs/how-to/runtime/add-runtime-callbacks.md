@@ -1,5 +1,7 @@
 # Add Runtime Callbacks
 
+> **Preview:** `PolicyRuntime` and runtime callbacks are planned APIs. The examples below document the target design.
+
 Use callbacks when you need product-specific behavior around the runtime loop.
 
 The following example records observations and actions.
