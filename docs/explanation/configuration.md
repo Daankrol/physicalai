@@ -35,18 +35,20 @@ Orchestrator
 Direct class mode:
 
 ```yaml
-class_path: physicalai.inference.runners.ActionChunking
+class_path: physicalai.capture.UVCCamera
 init_args:
-  chunk_size: 50
-  n_action_steps: 50
+  device: /dev/video0
+  width: 640
+  height: 480
 ```
 
 Registry mode:
 
 ```yaml
-type: action_chunking
-chunk_size: 50
-n_action_steps: 50
+type: uvc
+device: /dev/video0
+width: 640
+height: 480
 ```
 
 If both `class_path` and `type` are present, `class_path` takes precedence.

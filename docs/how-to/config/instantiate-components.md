@@ -5,18 +5,20 @@ A component spec describes one instantiable object.
 The most explicit form uses a class path.
 
 ```yaml
-class_path: physicalai.inference.runners.ActionChunking
+class_path: physicalai.capture.UVCCamera
 init_args:
-  chunk_size: 50
-  n_action_steps: 50
+  device: /dev/video0
+  width: 640
+  height: 480
 ```
 
 The shorter form uses a registry name.
 
 ```yaml
-type: action_chunking
-chunk_size: 50
-n_action_steps: 50
+type: uvc
+device: /dev/video0
+width: 640
+height: 480
 ```
 
 You can construct and instantiate the same spec from Python.
@@ -25,11 +27,11 @@ You can construct and instantiate the same spec from Python.
 from physicalai.config import ComponentSpec, instantiate_component
 
 spec = ComponentSpec(
-    class_path="physicalai.inference.runners.ActionChunking",
-    init_args={"chunk_size": 50, "n_action_steps": 50},
+    class_path="physicalai.capture.UVCCamera",
+    init_args={"device": "/dev/video0", "width": 640, "height": 480},
 )
 
-runner = instantiate_component(spec)
+camera = instantiate_component(spec)
 ```
 
 Nested component specs are instantiated recursively.
@@ -41,6 +43,11 @@ init_args:
     class_path: physicalai.robot.so101.SO101
     init_args:
       port: /dev/ttyACM0
+  cameras:
+    wrist:
+      class_path: physicalai.capture.UVCCamera
+      init_args:
+        device: /dev/video0
 ```
 
 `ComponentSpec` describes what should be built. Instantiation is the separate step that creates the live object.
