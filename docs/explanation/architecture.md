@@ -32,7 +32,6 @@ physicalai
   infer
   run
   serve
-  inspect-manifest
 
 training package
   fit

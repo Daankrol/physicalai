@@ -43,7 +43,6 @@ nav:
       - CLI:
           - Run: how-to/cli/run.md
           - Infer: how-to/cli/infer.md
-          - Inspect Manifest: how-to/cli/inspect-manifest.md
   - Explanation:
       - Overview: explanation/README.md
       - Architecture: explanation/architecture.md

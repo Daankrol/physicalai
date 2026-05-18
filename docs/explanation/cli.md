@@ -19,7 +19,6 @@ PolicyRuntime.from_config("runtime.yaml").run(duration_s=60)
 | `physicalai infer` | Runs offline inference. |
 | `physicalai run` | Runs a policy on robot hardware. |
 | `physicalai serve` | Serves policy inference remotely. |
-| `physicalai inspect-manifest` | Inspects exported package metadata. |
 
 ## Training Commands
 

@@ -25,10 +25,4 @@ print(manifest.model.runner)
 print(manifest.model.artifacts)
 ```
 
-CLI:
-
-```bash
-physicalai inspect-manifest ./exports/act_policy/manifest.json
-```
-
 Use manifests to describe exported artifacts. Use workflow config to author training, inference, or runtime workflows before execution.

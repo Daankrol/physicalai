@@ -23,8 +23,10 @@ PolicyRuntime.from_config("runtime.yaml").run(duration_s=60)
 
 ## `physicalai infer`
 
+*(Planned API — interface may change.)*
+
 ```bash
-physicalai infer --config inference.yaml --input observation.npz --output action.npz
+physicalai infer --config inference.yaml
 ```
 
 Arguments:
@@ -32,8 +34,6 @@ Arguments:
 | Argument | Required | Description |
 | --- | --- | --- |
 | `--config` | yes | Inference config YAML |
-| `--input` | yes | Input observation file |
-| `--output` | no | Output action file |
 
 ## `physicalai serve`
 
@@ -42,14 +42,6 @@ physicalai serve --config server.yaml --host 0.0.0.0 --port 8080
 ```
 
 Use this command when inference should run remotely instead of on the robot host.
-
-## `physicalai inspect-manifest`
-
-```bash
-physicalai inspect-manifest ./exports/act_policy/manifest.json
-```
-
-This command prints the exported package metadata.
 
 ## Plugin Commands
 

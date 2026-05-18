@@ -12,7 +12,6 @@ This section contains short tutorials for the first successful PhysicalAI workfl
 
 ```bash
 pip install physicalai
-physicalai inspect-manifest ./exports/act_policy/manifest.json
 physicalai run --config runtime.yaml --duration-s 60
 ```
 

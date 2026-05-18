@@ -25,4 +25,3 @@ This section contains task-oriented guides for common runtime workflows.
 
 - [Run](cli/run.md)
 - [Infer](cli/infer.md)
-- [Inspect manifest](cli/inspect-manifest.md)
