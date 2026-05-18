@@ -16,8 +16,6 @@
 
 ---
 
-## What is Physical AI Runtime?
-
 Physical AI Runtime provides the deployment-side components for running trained policies on real hardware. It handles camera capture, robot control, and policy inference with a unified API that works across different hardware vendors.
 
 **Key Features:**
@@ -201,7 +199,7 @@ verify_robot(robot)  # Interactive joint-by-joint check
 
 ## Inference
 
-Load exported policies from Physical AI Studio. The `InferenceModel` class auto-detects the backend (OpenVINO, ONNX, TorchScript) and handles action chunking automatically.
+Load exported policies from [Physical AI Studio](https://github.com/open-edge-platform/physical-ai-studio). The `InferenceModel` class auto-detects the backend (OpenVINO, ExecuTorch or ONNX) and handles action chunking automatically.
 
 ```python
 from physicalai.inference import InferenceModel
