@@ -1,6 +1,6 @@
 # Robot API Reference
 
-Robots satisfy the `Robot` protocol.
+Robot implementations are expected to satisfy the `Robot` protocol.
 
 ```python
 class Robot(Protocol):
@@ -26,7 +26,7 @@ class RobotObservation(Protocol):
 
 ## Requirements
 
-- `joint_positions` order must match `joint_names`.
-- `send_action()` action order must match `joint_names`.
-- `disconnect()` must leave hardware in a safe stationary state.
+- The `joint_positions` order must match `joint_names`.
+- The action passed to `send_action()` must match `joint_names`.
+- `disconnect()` must leave the hardware in a safe stationary state.
 - `connect()` should be idempotent or fail with a clear error.

@@ -1,6 +1,6 @@
 # Quickstart
 
-Load an exported policy package and compute one action.
+This tutorial shows the smallest useful inference flow: load an exported policy package and compute one action.
 
 ```python
 from physicalai.inference import InferenceModel
@@ -11,9 +11,9 @@ model.reset()
 action = model.select_action(observation)
 ```
 
-`observation` is a dictionary of NumPy arrays using names expected by the exported policy.
+The `observation` input is a dictionary of NumPy arrays. The keys must match the names expected by the exported policy.
 
-Example shape:
+For example, an observation may look like this.
 
 ```python
 observation = {
@@ -25,7 +25,7 @@ observation = {
 
 ## Chunk Policies
 
-Some policies produce action chunks. `select_action()` still returns one action.
+Some policies produce action chunks internally. Even in that case, `select_action()` still returns a single action on each call.
 
 ```python
 for _ in range(100):
@@ -33,7 +33,7 @@ for _ in range(100):
     observation = env.step(action)
 ```
 
-For runtime loops, use chunk prediction through `PolicyRuntime` instead of manually managing timing.
+If you are building a robot control loop, use chunk prediction through `PolicyRuntime` instead of managing timing and buffering yourself.
 
 ```python
 chunk = model.predict_action_chunk(observation)
@@ -41,7 +41,7 @@ chunk = model.predict_action_chunk(observation)
 
 ## Manifest Path
 
-Exported packages include a manifest:
+Exported packages include a manifest.
 
 ```text
 exports/act_policy/
@@ -50,4 +50,4 @@ exports/act_policy/
 └── stats.safetensors
 ```
 
-The manifest describes artifacts, runner, preprocessing, postprocessing, and hardware metadata.
+The manifest records the exported artifacts, the runner configuration, the preprocessing and postprocessing pipeline, and the hardware metadata.

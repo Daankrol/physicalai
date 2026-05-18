@@ -1,6 +1,6 @@
 # Robots
 
-Robots implement a structural interface. Inheritance is not required.
+Robots implement a structural interface, so inheritance is not required.
 
 ```python
 class MyRobot:
@@ -15,7 +15,7 @@ class MyRobot:
 
 ## Observation
 
-An observation exposes at least:
+A robot observation should expose at least the following fields.
 
 ```python
 joint_positions: np.ndarray
@@ -26,10 +26,10 @@ images: dict[str, Frame] | None
 
 ## Action Contract
 
-`send_action()` receives one action ordered to match `joint_names`.
+`send_action()` receives a single action vector whose order matches `joint_names`.
 
 ```python
 action.shape == (len(robot.joint_names),)
 ```
 
-Robot implementations own hardware safety on disconnect.
+Robot implementations are responsible for leaving the hardware in a safe state on disconnect.

@@ -1,6 +1,6 @@
 # Camera API Reference
 
-Camera implementations inherit from `Camera`.
+Camera implementations are expected to inherit from `Camera`.
 
 ```python
 class Camera:
@@ -41,8 +41,8 @@ class CameraType(StrEnum):
 
 | Method | Semantics |
 | --- | --- |
-| `read()` | next frame, blocking, preserves sequence |
-| `read_latest()` | newest frame, non-blocking, may skip frames |
-| `async_read()` | async wrapper around `read()` |
+| `read()` | Returns the next frame, blocks, and preserves sequence. |
+| `read_latest()` | Returns the newest frame, does not block, and may skip frames. |
+| `async_read()` | Provides an async wrapper around `read()`. |
 
 Camera instances are not thread-safe.

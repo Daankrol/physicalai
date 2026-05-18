@@ -1,6 +1,6 @@
 # Write Inference Config
 
-Use inference config when you need to author an inference pipeline outside an exported manifest.
+Use an inference config when you need to author an inference pipeline outside an exported manifest.
 
 ```yaml
 model:
@@ -20,10 +20,10 @@ model = instantiate_component(config.model)
 action = model.select_action(observation)
 ```
 
-If a manifest already contains the required runner, artifacts, processors, and hardware metadata, prefer loading from the manifest:
+If the manifest already contains the required runner, artifacts, processors, and hardware metadata, prefer loading from the manifest instead.
 
 ```python
 model = InferenceModel.load("./exports/act_policy")
 ```
 
-Use workflow config for user-authored intent. Use manifest for exported package metadata.
+Use workflow config to express user-authored intent. Use a manifest to describe exported package metadata.

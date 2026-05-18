@@ -1,6 +1,6 @@
 # Run a Policy
 
-Use `PolicyRuntime` when the policy controls a robot loop.
+Use `PolicyRuntime` when a policy needs to control a real robot loop.
 
 ```python
 from physicalai.inference import InferenceModel
@@ -20,13 +20,13 @@ runtime = PolicyRuntime(
 runtime.run(duration_s=60)
 ```
 
-Equivalent CLI:
+The equivalent CLI command uses the same runtime configuration.
 
 ```bash
 physicalai run --config runtime.yaml --duration-s 60
 ```
 
-Minimal runtime config:
+The minimal runtime configuration looks like this.
 
 ```yaml
 runtime:
@@ -47,7 +47,7 @@ runtime:
         mode: chunk
 ```
 
-Runtime loop shape:
+At a high level, the runtime loop follows this sequence.
 
 ```text
 read robot observation

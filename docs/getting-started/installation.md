@@ -1,12 +1,12 @@
 # Installation
 
-Install the runtime package:
+Install the runtime package first.
 
 ```bash
 pip install physicalai
 ```
 
-Install hardware extras only when needed:
+Install hardware extras only when you need a specific backend or robot integration.
 
 ```bash
 pip install "physicalai[realsense]"
@@ -14,7 +14,7 @@ pip install "physicalai[so101]"
 pip install "physicalai[robots]"
 ```
 
-Development install:
+For local development, install the repository environment and run the test suite.
 
 ```bash
 uv sync
@@ -23,11 +23,11 @@ uv run pytest
 
 ## Package Boundary
 
-`physicalai` is the runtime package. It should stay usable on deployment hosts without training dependencies such as Torch or Lightning.
+`physicalai` is the runtime package. It should remain usable on deployment hosts that do not have training dependencies such as Torch or Lightning installed.
 
-Training commands may be provided by a separate training distribution or plugin entry points.
+Training commands may be provided by a separate training distribution or by plugin entry points.
 
-## Check Install
+## Check the Install
 
 ```python
 import physicalai

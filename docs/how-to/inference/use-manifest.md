@@ -1,6 +1,6 @@
 # Use a Manifest
 
-An exported policy package contains `manifest.json`.
+An exported policy package contains a `manifest.json` file.
 
 ```text
 exports/act_policy/
@@ -9,13 +9,13 @@ exports/act_policy/
 └── stats.safetensors
 ```
 
-Load through `InferenceModel`:
+In most cases, you load the package through `InferenceModel`.
 
 ```python
 model = InferenceModel.load("./exports/act_policy")
 ```
 
-Inspect the manifest directly:
+If you need to inspect metadata directly, load the manifest itself.
 
 ```python
 from physicalai.inference.manifest import Manifest
@@ -31,4 +31,4 @@ CLI:
 physicalai inspect-manifest ./exports/act_policy/manifest.json
 ```
 
-Use manifests for exported artifacts. Use workflow config for authoring training, inference, or runtime workflows.
+Use manifests to describe exported artifacts. Use workflow config to author training, inference, or runtime workflows before execution.

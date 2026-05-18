@@ -1,6 +1,6 @@
 # Use Cameras
 
-Add cameras to runtime config when observations require images.
+Add cameras to the runtime configuration when the policy expects image observations.
 
 ```yaml
 runtime:
@@ -30,7 +30,7 @@ runtime:
         mode: chunk
 ```
 
-Runtime observation assembly:
+At runtime, the observation is assembled from the robot state and the configured camera frames.
 
 ```text
 robot.get_observation()
@@ -39,4 +39,4 @@ camera["front"].read_latest()
 merge into observation dict
 ```
 
-Use `read_latest()` for control loops. Use `read()` when every frame must be preserved.
+Use `read_latest()` for control loops because freshness matters more than completeness. Use `read()` when every frame must be preserved, for example during recording.

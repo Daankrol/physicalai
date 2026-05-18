@@ -1,8 +1,8 @@
 # Explanation
 
-Short concept pages for the runtime package.
+This section contains short concept pages for the runtime package.
 
-Read these when you need the model behind the APIs, not a step-by-step guide.
+Read these pages when you need the model behind the APIs rather than a step-by-step guide.
 
 ## Pages
 
@@ -15,4 +15,4 @@ Read these when you need the model behind the APIs, not a step-by-step guide.
 - [Runtime](runtime.md)
 - [Manifests](manifests.md)
 
-Detailed tradeoffs and implementation history stay in [Design Docs](../design/README.md).
+Detailed tradeoffs and implementation history remain in [Design Docs](../design/README.md).

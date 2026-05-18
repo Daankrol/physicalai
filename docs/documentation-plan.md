@@ -19,37 +19,39 @@ docs/
 
 ### Getting Started
 
-Use for first successful workflows.
+Use this section for first successful workflows.
 
-Examples:
+Examples include:
 
-- install the package
-- load an exported policy
-- run a policy on a robot
+- installing the package
+- loading an exported policy
+- running a policy on a robot
 
 ### How-To
 
-Use for a concrete task with a clear end state.
+Use this section for a concrete task with a clear end state.
 
-Examples:
+Examples include:
 
-- write a runtime config
-- use cameras in a control loop
-- run the CLI
+- writing a runtime config
+- using cameras in a control loop
+- running the CLI
 
 ### Explanation
 
-This section is to:
+This section should explain the stable mental model of the system.
 
-- explain ownership boundaries
-- explain invariants
-- explain terminology
+It should cover:
+
+- ownership boundaries
+- invariants
+- terminology
 
 ### Reference
 
-Use for exact lookup material.
+Use this section for exact lookup material.
 
-Examples:
+Examples include:
 
 - CLI arguments
 - config shapes
@@ -58,31 +60,31 @@ Examples:
 
 ### Design
 
-This section keeps detailed plans, tradeoffs, reviews, and alternatives here.
+This section keeps detailed plans, tradeoffs, reviews, and alternatives.
 
-These documents are inputs to implement the components, not user docs themselves.
+These documents are inputs to implementation and stable user docs. They are not the user docs themselves.
 
 ## Writing Style
 
-- plain Markdown only
-- short paragraphs
-- short headings
-- engineering-neutral tone
-- no marketing language
-- no speculative language unless explicitly labeled
-- prefer tables for boundaries and fields
-- prefer small examples over long narrative text
+- Use plain Markdown only.
+- Keep paragraphs short.
+- Keep headings short.
+- Use an engineering-neutral tone.
+- Avoid marketing language.
+- Avoid speculative language unless it is explicitly labeled.
+- Prefer tables for boundaries and fields.
+- Prefer small examples over long narrative text.
 
 ## Examples
 
-Examples should be:
+Examples should use:
 
 - minimal Python examples
 - minimal YAML examples
 - short CLI commands
 - short pseudo-code for control flow
 
-Instead of:
+Examples should avoid:
 
 - long generated code blocks
 - repeated examples with only small changes
@@ -92,7 +94,7 @@ Instead of:
 
 Some docs describe APIs that are planned but not fully implemented yet.
 
-Current planned areas:
+Current planned areas include:
 
 - `physicalai.runtime.PolicyRuntime`
 - runtime `Execution` and `ActionQueue`
@@ -107,7 +109,7 @@ Use a mixed model, with both manual and auto-generated references.
 
 ### Manual Reference
 
-Keep these hand-written:
+Keep the following pages hand-written:
 
 - CLI reference while commands are still evolving
 - config schema reference
@@ -115,43 +117,41 @@ Keep these hand-written:
 
 ### Generated Reference
 
-Generate these later from docstrings when implementation stabilizes:
+Generate the following pages later from docstrings when the implementation stabilizes:
 
 - public Python API pages
 
-Recommended future tool:
+The recommended future tool is `mkdocstrings`.
 
-- `mkdocstrings` for Python API pages
-
-Rule:
-
-- generated API pages should be wrapped by short hand-written introductions and examples
+The general rule is simple: generated API pages should be wrapped by short hand-written introductions and examples.
 
 ## Build Strategy
 
 Use MkDocs with plain Markdown.
 
+This choice keeps the documentation simple to maintain.
+
 Reasons:
 
-- simple repository-local build
-- portable Markdown source
-- easy future integration with `mkdocstrings`
-- does not require MDX
+- the build stays repository-local
+- the Markdown source remains portable
+- future integration with `mkdocstrings` stays straightforward
+- the docs do not require MDX
 
 The repository includes a build-ready `mkdocs.yml`.
 
 ## Maintenance Rules
 
-- design docs can be detailed
-- explanation docs must stay trimmed
-- if code and docs disagree, update both in the same change when possible
-- do not let design docs become the only source of public behavior
-- keep examples runnable or close to runnable
+- Design docs can be detailed.
+- Explanation docs should stay trimmed.
+- If code and docs disagree, update both in the same change when possible.
+- Do not let design docs become the only source of public behavior.
+- Keep examples runnable or close to runnable.
 
 ## Future Work
 
 1. Add a docs CI build.
-2. Add `mkdocstrings` once runtime/config APIs stabilize.
+2. Add `mkdocstrings` once runtime and config APIs stabilize.
 3. Replace manual API signature pages with generated API pages.
-4. Generate CLI reference from parser help once CLI implementation lands.
+4. Generate CLI reference from parser help once the CLI implementation lands.
 5. Generate JSON Schema for manifest and config models where useful.

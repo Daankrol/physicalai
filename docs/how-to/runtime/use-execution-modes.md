@@ -1,10 +1,10 @@
 # Use Execution Modes
 
-`Execution` decides where inference runs.
+The `Execution` component decides where inference runs and how requests are scheduled.
 
 ## Synchronous
 
-Runs inference in the runtime thread.
+This mode runs inference in the runtime thread.
 
 ```yaml
 execution:
@@ -13,11 +13,11 @@ execution:
     mode: chunk
 ```
 
-Use for simple deployments and debugging.
+This mode is appropriate for simple deployments and debugging.
 
 ## Thread Worker
 
-Runs inference in a background thread.
+This mode runs inference in a background thread.
 
 ```yaml
 execution:
@@ -26,11 +26,11 @@ execution:
     transport: thread
 ```
 
-Use when model latency should not block robot timing.
+Use this mode when model latency should not block robot timing.
 
 ## Process Worker
 
-Runs inference in a worker process.
+This mode runs inference in a worker process.
 
 ```yaml
 execution:
@@ -39,11 +39,11 @@ execution:
     transport: process
 ```
 
-Use when model execution should be isolated from the robot process.
+Use this mode when model execution should be isolated from the robot process.
 
 ## Remote
 
-Sends inference requests to a policy server.
+This mode sends inference requests to a policy server.
 
 ```yaml
 execution:
@@ -52,4 +52,4 @@ execution:
     endpoint: http://robot-server:8080
 ```
 
-Use when the robot host should not hold policy weights or accelerator dependencies.
+Use this mode when the robot host should not hold policy weights or accelerator dependencies.

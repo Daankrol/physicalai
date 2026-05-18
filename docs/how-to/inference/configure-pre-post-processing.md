@@ -1,8 +1,8 @@
 # Configure Preprocessing and Postprocessing
 
-Preprocessors run before model execution. Postprocessors run after model execution.
+Preprocessors run before model execution. Postprocessors run after model execution. Together, they define the input and output adaptation around the runner.
 
-Manifest example:
+The manifest can declare both stages.
 
 ```yaml
 model:
@@ -19,7 +19,7 @@ model:
       artifact: stats.safetensors
 ```
 
-Direct class mode:
+The same components can also be declared with explicit class paths.
 
 ```yaml
 preprocessors:
@@ -38,4 +38,4 @@ observation
   -> action output
 ```
 
-Use `type` for registered built-ins. Use `class_path` for explicit imports.
+Use `type` for registered built-in components. Use `class_path` when you want an explicit import path.

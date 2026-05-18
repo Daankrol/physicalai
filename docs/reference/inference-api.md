@@ -16,6 +16,8 @@ InferenceModel(
 )
 ```
 
+The model can be constructed directly from an export directory or loaded from config.
+
 ## Constructors
 
 ```python
@@ -31,7 +33,7 @@ model = InferenceModel.from_config("inference.yaml")
 action = model.select_action(observation)
 ```
 
-Returns one action.
+This method returns one action.
 
 ### `predict_action_chunk`
 
@@ -39,7 +41,7 @@ Returns one action.
 chunk = model.predict_action_chunk(observation)
 ```
 
-Returns a chunk of actions for runtime queueing.
+This method returns a chunk of actions for runtime queueing.
 
 ### `reset`
 
@@ -47,7 +49,7 @@ Returns a chunk of actions for runtime queueing.
 model.reset()
 ```
 
-Clears runner state and action cursor.
+This method clears the runner state and the action cursor.
 
 ### `close`
 
@@ -55,7 +57,7 @@ Clears runner state and action cursor.
 model.close()
 ```
 
-Releases backend resources.
+This method releases backend resources.
 
 ## Observation
 
@@ -68,4 +70,4 @@ observation = {
 }
 ```
 
-Expected keys and shapes come from the exported package and policy preprocessing pipeline.
+The expected keys and shapes come from the exported package and its preprocessing pipeline.

@@ -1,12 +1,12 @@
 # CLI: Inspect Manifest
 
-Inspect an exported policy manifest:
+Use this command to inspect an exported policy manifest.
 
 ```bash
 physicalai inspect-manifest ./exports/act_policy/manifest.json
 ```
 
-Expected output should include:
+The output should include at least the following information.
 
 - manifest format and version
 - policy name
@@ -15,4 +15,4 @@ Expected output should include:
 - preprocessors and postprocessors
 - robot and camera specs
 
-Use this before deployment to check that the package contains the expected artifacts and metadata.
+Run this command before deployment to verify that the package contains the expected artifacts and metadata.

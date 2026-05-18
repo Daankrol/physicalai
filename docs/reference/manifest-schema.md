@@ -1,6 +1,6 @@
 # Manifest Schema Reference
 
-The on-disk manifest is `manifest.json`. YAML is shown for readability.
+The on-disk manifest is `manifest.json`. YAML is shown here for readability.
 
 ## Top Level
 
@@ -80,4 +80,4 @@ hardware:
       dtype: uint8
 ```
 
-Robot and camera specs are metadata. Hardware classes are selected by runtime config.
+Robot and camera specs are metadata only. The runtime config still selects the concrete hardware classes.

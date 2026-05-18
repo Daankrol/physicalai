@@ -1,12 +1,6 @@
 # PhysicalAI Documentation
 
-PhysicalAI provides runtime components for exported robot policies:
-
-- load exported policy packages
-- run local inference
-- connect cameras and robots
-- run a policy control loop
-- configure workflows from Python, YAML, or CLI
+PhysicalAI provides runtime components for working with exported robot policies. The documentation is organized around the main deployment tasks and the runtime concepts behind them.
 
 ## Quick Links
 
@@ -34,6 +28,8 @@ docs/
 
 ## Workflow
 
+Most deployment workflows follow the same path from an exported package to a running robot loop.
+
 ```text
 exported policy package
     -> InferenceModel
@@ -41,7 +37,7 @@ exported policy package
     -> Robot
 ```
 
-Python:
+Python example:
 
 ```python
 from physicalai.inference import InferenceModel
@@ -61,7 +57,7 @@ runtime = PolicyRuntime(
 runtime.run(duration_s=60)
 ```
 
-CLI:
+CLI example:
 
 ```bash
 physicalai run --config runtime.yaml --duration-s 60
@@ -69,5 +65,5 @@ physicalai run --config runtime.yaml --duration-s 60
 
 ## Notes
 
-- Documentation structure and maintenance rules are recorded in [Documentation Plan](documentation-plan.md).
+- The documentation structure and maintenance rules are recorded in [Documentation Plan](documentation-plan.md).
 - Detailed tradeoffs and phased design work remain in [Design Docs](design/README.md).

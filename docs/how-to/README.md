@@ -1,6 +1,6 @@
 # How-To Guides
 
-Task-oriented guides.
+This section contains task-oriented guides for common runtime workflows.
 
 ## Runtime
 

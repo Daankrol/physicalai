@@ -1,18 +1,18 @@
 # CLI: Run
 
-Run a policy runtime from YAML:
+Use this command to run a policy runtime from a YAML file.
 
 ```bash
 physicalai run --config runtime.yaml
 ```
 
-Limit duration:
+You can limit the run duration when needed.
 
 ```bash
 physicalai run --config runtime.yaml --duration-s 60
 ```
 
-Expected Python equivalent:
+The equivalent Python call is shown below.
 
 ```python
 from physicalai.runtime import PolicyRuntime
@@ -20,6 +20,6 @@ from physicalai.runtime import PolicyRuntime
 PolicyRuntime.from_config("runtime.yaml").run(duration_s=60)
 ```
 
-The CLI must use the same config schema as Python APIs.
+The CLI is expected to use the same config schema as the Python APIs.
 
-Runtime commands live in the `physicalai` package. Training commands should be provided by training packages or plugin entry points.
+Runtime commands live in the `physicalai` package. Training commands should be provided by training packages or plugin entry points so the runtime package stays lightweight.

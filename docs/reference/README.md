@@ -1,6 +1,6 @@
 # Reference
 
-Exact lookup material for commands, schemas, and public contracts.
+This section provides exact lookup material for commands, schemas, and public contracts.
 
 ## Pages
 

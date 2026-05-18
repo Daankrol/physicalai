@@ -1,8 +1,8 @@
 # Add Runtime Callbacks
 
-Use callbacks for product behavior around the runtime loop.
+Use callbacks when you need product-specific behavior around the runtime loop.
 
-Example: record observations and actions.
+The following example records observations and actions.
 
 ```python
 class RecordingCallback:
@@ -20,7 +20,7 @@ class RecordingCallback:
         recorder.close()
 ```
 
-Attach it:
+Attach the callback when you construct the runtime.
 
 ```python
 runtime = PolicyRuntime(
@@ -32,4 +32,4 @@ runtime = PolicyRuntime(
 )
 ```
 
-Design rule: keep workflow-specific logic in callbacks unless it becomes a reusable runtime primitive.
+As a general rule, keep workflow-specific logic in callbacks unless the same behavior becomes a reusable runtime primitive.

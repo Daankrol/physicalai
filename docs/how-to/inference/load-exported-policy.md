@@ -1,6 +1,6 @@
 # Load an Exported Policy
 
-Load with auto-detection:
+Load the exported package with auto-detection first.
 
 ```python
 from physicalai.inference import InferenceModel
@@ -8,14 +8,14 @@ from physicalai.inference import InferenceModel
 model = InferenceModel.load("./exports/act_policy")
 ```
 
-Run one action:
+Then compute one action.
 
 ```python
 model.reset()
 action = model.select_action(observation)
 ```
 
-Select backend explicitly:
+If necessary, select the backend explicitly.
 
 ```python
 model = InferenceModel.load(
@@ -25,10 +25,10 @@ model = InferenceModel.load(
 )
 ```
 
-Use chunk prediction when a runtime owns queueing:
+Use chunk prediction when a runtime owns the queueing and timing.
 
 ```python
 chunk = model.predict_action_chunk(observation)
 ```
 
-Do not implement robot-loop timing around `select_action()`. Use `PolicyRuntime` for that.
+Do not build robot-loop timing around `select_action()`. Use `PolicyRuntime` when the policy is driving hardware.

@@ -1,6 +1,6 @@
 # Configuration
 
-The config system makes Python, YAML, CLI, and Studio payloads use the same workflow shape.
+The config system is intended to make Python, YAML, CLI, and Studio payloads use the same workflow shape.
 
 ```python
 runtime = PolicyRuntime.from_config("runtime.yaml")
@@ -49,11 +49,11 @@ chunk_size: 50
 n_action_steps: 50
 ```
 
-`class_path` takes precedence when both are present.
+If both `class_path` and `type` are present, `class_path` takes precedence.
 
 ## Typed Config
 
-Use typed configs for constructor validation.
+Typed configs are useful when constructor validation and IDE support matter.
 
 ```python
 @dataclass
@@ -66,16 +66,16 @@ class Pi05Config(Config):
             raise ValueError("n_action_steps must be <= chunk_size")
 ```
 
-Typed configs do not decide which class to instantiate.
+Typed configs do not decide which class to instantiate. They only validate and carry constructor arguments.
 
 ```python
 cfg = Pi05Config(chunk_size=50)
 policy = instantiate_obj(cfg, target_cls=Pi05)
 ```
 
-## Rule
+## Execution Boundary
 
-Config is data. Orchestrators execute.
+Configuration objects remain passive data. Orchestrators are responsible for creating live objects and executing workflows.
 
 ```python
 config = RuntimeConfig.load("runtime.yaml")

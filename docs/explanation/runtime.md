@@ -1,6 +1,6 @@
 # Runtime
 
-`PolicyRuntime` runs a policy on robot hardware.
+`PolicyRuntime` runs a policy on robot hardware. It owns the control loop, the callback lifecycle, and the interaction between observations, inference requests, and actions.
 
 ```python
 runtime = PolicyRuntime.from_config("runtime.yaml")
@@ -46,7 +46,7 @@ while running:
 
 ## Product Workflows
 
-HIL, recording, highlight, and DAgger compose through callbacks until they need reusable runtime primitives.
+HIL, recording, highlight, and DAgger should be composed through callbacks until they justify reusable runtime primitives.
 
 ```python
 class HILCallback:

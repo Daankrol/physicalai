@@ -1,6 +1,6 @@
 # Cameras
 
-Cameras expose a small capture interface.
+Cameras expose a small capture interface for connecting to a device and retrieving frames.
 
 ```python
 camera.connect()
@@ -18,10 +18,10 @@ camera.disconnect()
 
 ## Runtime Use
 
-Control loops usually need freshness over completeness.
+Control loops usually care more about freshness than completeness.
 
 ```python
 observation["image.wrist"] = wrist_camera.read_latest()
 ```
 
-Camera instances are not thread-safe. Use one thread per camera instance or external synchronization.
+Camera instances are not thread-safe. Use one thread per camera instance or add external synchronization.

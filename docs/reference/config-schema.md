@@ -1,6 +1,6 @@
 # Config Schema Reference
 
-Config files use `class_path` and `init_args` for explicit component construction.
+Config files use `class_path` and `init_args` to describe explicit component construction.
 
 ## ComponentSpec
 
@@ -19,7 +19,7 @@ type: registered_name
 key: value
 ```
 
-Fields:
+The `ComponentSpec` fields are listed below.
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -28,10 +28,10 @@ Fields:
 | `type` | string | Registered short name |
 | extra fields | any | Flat constructor args for registry mode |
 
-Rules:
+The core rules are straightforward.
 
-- `class_path` or `type` is required.
-- `class_path` takes precedence.
+- A component spec must include either `class_path` or `type`.
+- If both fields are present, `class_path` takes precedence.
 - Nested component specs are instantiated recursively.
 
 ## RuntimeConfig
@@ -55,7 +55,7 @@ runtime:
         mode: chunk
 ```
 
-Common runtime fields:
+The most common runtime fields are listed below.
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -78,7 +78,7 @@ model:
     device: CPU
 ```
 
-Common inference fields:
+The most common inference fields are listed below.
 
 | Field | Type | Description |
 | --- | --- | --- |
@@ -91,5 +91,5 @@ Common inference fields:
 
 | Schema | Use |
 | --- | --- |
-| Workflow config | author a workflow before execution |
-| Manifest | describe an exported package after export |
+| Workflow config | A workflow config describes a workflow before execution. |
+| Manifest | A manifest describes an exported package after export. |

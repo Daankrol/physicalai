@@ -1,6 +1,6 @@
 # Run a Policy on a Robot
 
-Create a runtime config:
+Start by writing a runtime configuration file.
 
 ```yaml
 # runtime.yaml
@@ -22,13 +22,13 @@ runtime:
         mode: chunk
 ```
 
-Run it:
+Then run the runtime from the CLI.
 
 ```bash
 physicalai run --config runtime.yaml --duration-s 60
 ```
 
-Python equivalent:
+The equivalent Python entry point is shown below.
 
 ```python
 from physicalai.runtime import PolicyRuntime
@@ -37,7 +37,7 @@ runtime = PolicyRuntime.from_config("runtime.yaml")
 runtime.run(duration_s=60)
 ```
 
-Expected ownership:
+The runtime is easier to reason about when each object has a clear ownership boundary.
 
 | Object | Owns |
 | --- | --- |

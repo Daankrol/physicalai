@@ -6,7 +6,7 @@ The CLI is a thin wrapper over the same config APIs used by Python.
 physicalai run --config runtime.yaml --duration-s 60
 ```
 
-Equivalent:
+Equivalent Python:
 
 ```python
 PolicyRuntime.from_config("runtime.yaml").run(duration_s=60)
@@ -16,10 +16,10 @@ PolicyRuntime.from_config("runtime.yaml").run(duration_s=60)
 
 | Command | Purpose |
 | --- | --- |
-| `physicalai infer` | run offline inference |
-| `physicalai run` | run a policy on robot hardware |
-| `physicalai serve` | serve policy inference remotely |
-| `physicalai inspect-manifest` | inspect exported package metadata |
+| `physicalai infer` | Runs offline inference. |
+| `physicalai run` | Runs a policy on robot hardware. |
+| `physicalai serve` | Serves policy inference remotely. |
+| `physicalai inspect-manifest` | Inspects exported package metadata. |
 
 ## Training Commands
 
@@ -31,4 +31,4 @@ fit = "physicalai.train.cli:register_fit"
 export = "physicalai.train.cli:register_export"
 ```
 
-Importing `physicalai` should not import training dependencies.
+Importing `physicalai` should not pull in training dependencies.

@@ -2,6 +2,8 @@
 
 ## `PolicyRuntime`
 
+`PolicyRuntime` is the main orchestrator for running a policy on hardware.
+
 ```python
 PolicyRuntime(
     robot: Robot,
@@ -15,7 +17,7 @@ PolicyRuntime(
 )
 ```
 
-Methods:
+The most important methods are shown below.
 
 ```python
 runtime.run(duration_s: float | None = None) -> None
@@ -23,7 +25,7 @@ runtime.stop() -> None
 runtime.close() -> None
 ```
 
-Construct from config:
+You can also construct the runtime from a config file.
 
 ```python
 runtime = PolicyRuntime.from_config("runtime.yaml")
@@ -39,13 +41,13 @@ class Execution:
     def stop(self) -> None: ...
 ```
 
-Implementations:
+The expected execution implementations are listed below.
 
 | Class | Purpose |
 | --- | --- |
-| `SyncExecution` | run inference in runtime thread |
-| `AsyncExecution` | run inference in thread or process worker |
-| `RemoteExecution` | request inference from remote server |
+| `SyncExecution` | runs inference in the runtime thread |
+| `AsyncExecution` | runs inference in a thread or process worker |
+| `RemoteExecution` | requests inference from a remote server |
 
 ## `ActionQueue`
 
@@ -55,4 +57,4 @@ action = queue.pop_or_none()
 queue.clear()
 ```
 
-Action queue owns runtime buffering, merging, smoothing, and late-result policy.
+The action queue owns runtime buffering, merging, smoothing, and the policy for handling late results.

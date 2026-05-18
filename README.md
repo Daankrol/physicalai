@@ -26,7 +26,7 @@ Physical AI Runtime is the lightweight deployment layer for Physical AI. It runs
 ## Key Features
 
 - **Unified Inference API** - Load and run exported policies with `InferenceModel`
-- **Runtime CLI** - `physicalai run/serve/validate` for deployment workflows
+- **Runtime CLI** - `physicalai run/serve` for deployment workflows
 - **Hardware Interfaces** - Camera and robot interfaces with clean boundaries
 - **Benchmarking** - NumPy‑only benchmarking runner and protocols
 - **Format‑agnostic** - Works with exported models from physicalai-train, LeRobot, and custom frameworks
@@ -51,7 +51,7 @@ action = policy.select_action(observation)
 ### CLI
 
 ```bash
-physicalai run --model ./exports/act_policy --robot robot.yaml
+physicalai run --path ./exports/pi05
 ```
 
 ## Documentation

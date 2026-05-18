@@ -1,6 +1,6 @@
 # Inference
 
-`InferenceModel` is the runtime API for exported policies.
+`InferenceModel` is the runtime API for exported policies. It loads the exported package, runs preprocessing and postprocessing, and produces actions.
 
 ```python
 model = InferenceModel.load("./exports/act_policy")
@@ -21,14 +21,14 @@ observation
 
 | Method | Use |
 | --- | --- |
-| `select_action(observation)` | return one action now |
-| `predict_action_chunk(observation)` | return a chunk for runtime queueing |
-| `reset()` | clear state for a new episode |
-| `close()` | release backend resources |
+| `select_action(observation)` | Returns one action immediately. |
+| `predict_action_chunk(observation)` | Returns a chunk for runtime queueing. |
+| `reset()` | Clears state for a new episode. |
+| `close()` | Releases backend resources. |
 
 ## Chunked Policies
 
-Chunk-producing policies still support `select_action()`.
+Chunk-producing policies still support `select_action()`. The caller does not need to branch on runner type.
 
 ```python
 if cursor.empty():
@@ -37,13 +37,13 @@ if cursor.empty():
 return cursor.pop()
 ```
 
-The cursor is a model convenience. It is not the runtime action queue.
+The cursor is a convenience inside the model layer. It is not the runtime action queue and it should not be treated as one.
 
 ## Runtime Boundary
 
 Use `select_action()` for scripts, tests, demos, and evaluation loops.
 
-Use `predict_action_chunk()` through `PolicyRuntime` for robot execution.
+Use `predict_action_chunk()` through `PolicyRuntime` when the policy is driving a robot.
 
 ```text
 PolicyRuntime

@@ -1,6 +1,6 @@
 # CLI Reference
 
-Runtime CLI commands use the same schemas as Python APIs.
+The runtime CLI commands use the same schemas as the Python APIs.
 
 ## `physicalai run`
 
@@ -13,9 +13,9 @@ Arguments:
 | Argument | Required | Description |
 | --- | --- | --- |
 | `--config` | yes | Runtime config YAML |
-| `--duration-s` | no | Stop after duration in seconds |
+| `--duration-s` | no | Stop after the given duration in seconds |
 
-Equivalent:
+The equivalent Python call is shown below.
 
 ```python
 PolicyRuntime.from_config("runtime.yaml").run(duration_s=60)
@@ -41,7 +41,7 @@ Arguments:
 physicalai serve --config server.yaml --host 0.0.0.0 --port 8080
 ```
 
-Use for remote inference from robot hosts.
+Use this command when inference should run remotely instead of on the robot host.
 
 ## `physicalai inspect-manifest`
 
@@ -49,7 +49,7 @@ Use for remote inference from robot hosts.
 physicalai inspect-manifest ./exports/act_policy/manifest.json
 ```
 
-Prints exported package metadata.
+This command prints the exported package metadata.
 
 ## Plugin Commands
 

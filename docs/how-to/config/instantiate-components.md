@@ -2,7 +2,7 @@
 
 A component spec describes one instantiable object.
 
-Direct class mode:
+The most explicit form uses a class path.
 
 ```yaml
 class_path: physicalai.inference.runners.ActionChunking
@@ -11,7 +11,7 @@ init_args:
   n_action_steps: 50
 ```
 
-Registry mode:
+The shorter form uses a registry name.
 
 ```yaml
 type: action_chunking
@@ -19,7 +19,7 @@ chunk_size: 50
 n_action_steps: 50
 ```
 
-Python:
+You can construct and instantiate the same spec from Python.
 
 ```python
 from physicalai.config import ComponentSpec, instantiate_component
@@ -32,7 +32,7 @@ spec = ComponentSpec(
 runner = instantiate_component(spec)
 ```
 
-Nested components are instantiated recursively:
+Nested component specs are instantiated recursively.
 
 ```yaml
 class_path: physicalai.runtime.PolicyRuntime
@@ -43,4 +43,4 @@ init_args:
       port: /dev/ttyACM0
 ```
 
-Rule: `ComponentSpec` describes what to build. Instantiation builds it.
+`ComponentSpec` describes what should be built. Instantiation is the separate step that creates the live object.

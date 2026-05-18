@@ -1,6 +1,6 @@
 # Write Runtime Config
 
-Runtime config describes a robot control workflow before execution.
+A runtime config describes a robot control workflow before execution starts.
 
 ```yaml
 # runtime.yaml
@@ -22,7 +22,7 @@ runtime:
         mode: chunk
 ```
 
-Run from Python:
+You can load the same file from Python.
 
 ```python
 from physicalai.runtime import PolicyRuntime
@@ -31,13 +31,13 @@ runtime = PolicyRuntime.from_config("runtime.yaml")
 runtime.run(duration_s=60)
 ```
 
-Run from CLI:
+You can also run the same config from the CLI.
 
 ```bash
 physicalai run --config runtime.yaml --duration-s 60
 ```
 
-Nested components use the same shape:
+Nested components use the same `class_path` and `init_args` shape.
 
 ```yaml
 class_path: module.ClassName
@@ -45,4 +45,4 @@ init_args:
   key: value
 ```
 
-Config is passive data. `PolicyRuntime.run()` executes the workflow.
+The config file remains passive data. The workflow starts only when `PolicyRuntime.run()` is called.
