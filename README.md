@@ -237,30 +237,32 @@ model = InferenceModel.load(
 The `PolicyRuntime` orchestrates the full control loop: connecting hardware, reading cameras, building observations, running inference, and dispatching actions to the robot. *(Planned API — documents target design.)*
 
 ```python
-from physicalai.runtime import PolicyRuntime
+from physicalai.runtime import PolicyRuntime, SyncExecution
+from physicalai.inference import InferenceModel
+from physicalai.capture import UVCCamera, RealSenseCamera
+from physicalai.robot import SO101
 
-runtime = PolicyRuntime.from_config("runtime.yaml")
+runtime = PolicyRuntime(
+    fps=30,
+    robot=SO101(port="/dev/ttyACM0"),
+    model=InferenceModel.load("./exports/act_policy"),
+    cameras={
+        "wrist": UVCCamera(device="/dev/video0", width=640, height=480),
+        "overhead": RealSenseCamera(serial="123456789"),
+    },
+    execution=SyncExecution(mode="chunk"),
+)
+
 runtime.run(duration_s=60)
 ```
 
-The runtime ties together all components — cameras, robot, inference model, and execution strategy — into a single control loop:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      PolicyRuntime                          │
-│                                                             │
-│   ┌──────────┐    ┌─────────────┐    ┌──────────────────┐  │
-│   │ Cameras  │───▶│ Observation │───▶│ InferenceModel   │  │
-│   └──────────┘    │   Builder   │    │  .select_action  │  │
-│                   └─────────────┘    └────────┬─────────┘  │
-│   ┌──────────┐                                │            │
-│   │  Robot   │◀───────────────────────────────┘            │
-│   └──────────┘         actions                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
 <details>
-<summary><strong>Runtime Config (YAML)</strong></summary>
+<summary><strong>From YAML Config</strong></summary>
+
+```python
+runtime = PolicyRuntime.from_config("runtime.yaml")
+runtime.run(duration_s=60)
+```
 
 ```yaml
 # runtime.yaml
@@ -283,10 +285,6 @@ runtime:
           device: /dev/video0
           width: 640
           height: 480
-      overhead:
-        class_path: physicalai.capture.RealSenseCamera
-        init_args:
-          serial: "123456789"
     execution:
       class_path: physicalai.runtime.SyncExecution
       init_args:
@@ -296,23 +294,28 @@ runtime:
 </details>
 
 <details>
-<summary><strong>Runtime Config (Python)</strong></summary>
+<summary><strong>CLI</strong></summary>
+
+```bash
+physicalai run --config runtime.yaml --duration-s 60
+```
+
+</details>
+
+<details>
+<summary><strong>Async Execution</strong></summary>
+
+Async execution runs inference in a background thread while the main loop handles camera reads and robot commands at a fixed frequency. Useful when inference is slower than the control rate.
 
 ```python
-from physicalai.runtime import PolicyRuntime, SyncExecution
-from physicalai.inference import InferenceModel
-from physicalai.capture import UVCCamera, RealSenseCamera
-from physicalai.robot import SO101
+from physicalai.runtime import PolicyRuntime, AsyncExecution
 
 runtime = PolicyRuntime(
     fps=30,
-    robot=SO101(port="/dev/ttyACM0"),
-    model=InferenceModel.load("./exports/act_policy"),
-    cameras={
-        "wrist": UVCCamera(device="/dev/video0", width=640, height=480),
-        "overhead": RealSenseCamera(serial="123456789"),
-    },
-    execution=SyncExecution(mode="chunk"),
+    robot=robot,
+    model=model,
+    cameras=cameras,
+    execution=AsyncExecution(),
 )
 
 runtime.run(duration_s=60)
@@ -321,10 +324,21 @@ runtime.run(duration_s=60)
 </details>
 
 <details>
-<summary><strong>CLI</strong></summary>
+<summary><strong>Remote Execution</strong></summary>
 
-```bash
-physicalai run --config runtime.yaml --duration-s 60
+Remote execution sends observations to an inference server and receives actions over the network. Useful for running large models on a separate GPU machine.
+
+```python
+from physicalai.runtime import PolicyRuntime, RemoteExecution
+
+runtime = PolicyRuntime(
+    fps=30,
+    robot=robot,
+    cameras=cameras,
+    execution=RemoteExecution(endpoint="http://gpu-server:8080/infer"),
+)
+
+runtime.run(duration_s=60)
 ```
 
 </details>
