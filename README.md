@@ -357,12 +357,7 @@ runtime.run(duration_s=60)
 
 ## Documentation
 
-[Documentation Home](./docs/index.md)•
-
-- [Getting Started](./docs/getting-started/)
-- [How-To Guides](./docs/how-to/)
-- [Concepts](./docs/explanation/)
-- [API Reference](./docs/reference/)
+[Home](./docs/index.md) • [Getting Started](./docs/getting-started/) • [How-To Guides](./docs/how-to/) • [Concepts](./docs/explanation/) • [API Reference](./docs/reference/)
 
 ## Contributing
 
