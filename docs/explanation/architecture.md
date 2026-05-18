@@ -15,11 +15,11 @@ exported package
 | --- | --- |
 | `Manifest` | describes exported artifacts and inference pipeline |
 | `InferenceModel` | loads artifacts and computes actions |
-| `PolicyRuntime` | runs the robot control loop |
-| `Execution` | decides where inference runs |
-| `ActionQueue` | buffers and merges action chunks |
 | `Robot` | reads state and sends commands |
 | `Camera` | reads image frames |
+| `Execution` | decides where inference runs |
+| `ActionQueue` | buffers and merges action chunks |
+| `PolicyRuntime` | runs the robot control loop |
 
 ## Package Boundary
 
@@ -34,7 +34,7 @@ physicalai
   serve
   inspect-manifest
 
-training package
+physicalai-train package
   fit
   validate
   test

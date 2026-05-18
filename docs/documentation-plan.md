@@ -2,14 +2,6 @@
 
 This document records the documentation approach for the `physicalai` repository.
 
-## Goals
-
-- document the runtime package as a user-facing product
-- separate stable user docs from detailed design history
-- keep tone engineering-neutral and concise
-- prefer examples, pseudo-code, and exact contracts over long prose
-- keep docs portable across Markdown renderers
-
 ## Documentation Model
 
 The docs follow the Diataxis structure.
@@ -47,21 +39,11 @@ Examples:
 
 ### Explanation
 
-Use for stable mental models and boundaries.
-
-Keep these short.
-
-Do:
+This section is to:
 
 - explain ownership boundaries
 - explain invariants
 - explain terminology
-
-Do not:
-
-- copy design documents
-- include implementation history
-- include option analysis unless still required for understanding
 
 ### Reference
 
@@ -76,9 +58,9 @@ Examples:
 
 ### Design
 
-Keep detailed plans, tradeoffs, reviews, and alternatives here.
+This section keeps detailed plans, tradeoffs, reviews, and alternatives here.
 
-These documents are inputs to user docs, not user docs themselves.
+These documents are inputs to implement the components, not user docs themselves.
 
 ## Writing Style
 
@@ -93,14 +75,14 @@ These documents are inputs to user docs, not user docs themselves.
 
 ## Examples
 
-Prefer:
+Examples should be:
 
 - minimal Python examples
 - minimal YAML examples
 - short CLI commands
 - short pseudo-code for control flow
 
-Avoid:
+Instead of:
 
 - long generated code blocks
 - repeated examples with only small changes
@@ -121,7 +103,7 @@ When documentation describes planned APIs, it should reflect the accepted design
 
 ## Reference Strategy
 
-Use a mixed model.
+Use a mixed model, with both manual and auto-generated references.
 
 ### Manual Reference
 

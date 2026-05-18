@@ -23,6 +23,4 @@ These docs follow the Diataxis structure:
 - Task guides live in `how-to/`.
 - Concepts live in `explanation/`.
 - Exact lookup material lives in `reference/`.
-- Design history stays in `design/`.
-
-Use plain Markdown. Avoid site-specific MDX components until a docs site is selected.
+- Design docs stays in `design/`.
