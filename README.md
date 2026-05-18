@@ -4,7 +4,7 @@
 
 <div align="center">
 
-**Runtime package for deploying robot policies trained with Physical AI Studio**
+**Runtime package for deploying robot policies trained with [Physical AI Studio](https://github.com/open-edge-platform/physical-ai-studio)**
 
 [Installation](#installation) •
 [Camera API](#camera-api) •
@@ -199,7 +199,7 @@ verify_robot(robot)  # Interactive joint-by-joint check
 
 ## Inference
 
-Load exported policies from Physical AI Studio. The `InferenceModel` class auto-detects the backend (OpenVINO, ONNX, TorchScript) and handles action chunking automatically.
+Load exported policies from [Physical AI Studio](https://github.com/open-edge-platform/physical-ai-studio). The `InferenceModel` class auto-detects the backend (OpenVINO, ONNX, TorchScript) and handles action chunking automatically.
 
 ```python
 from physicalai.inference import InferenceModel
