@@ -19,7 +19,6 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Plan: documentation-plan.md
   - Getting Started:
       - Overview: getting-started/README.md
       - Installation: getting-started/installation.md
