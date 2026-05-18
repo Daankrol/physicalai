@@ -1,5 +1,7 @@
 # Use Execution Modes
 
+> **NOTE:** Execution implementation is currently work in progress.
+
 The `Execution` component decides where inference runs and how requests are scheduled.
 
 ## Synchronous
