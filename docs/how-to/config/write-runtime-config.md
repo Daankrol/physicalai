@@ -15,7 +15,14 @@ runtime:
     model:
       class_path: physicalai.inference.InferenceModel
       init_args:
-        export_dir: ./exports/act_policy
+        path: ./exports/act_policy
+    cameras:
+      wrist:
+        class_path: physicalai.capture.UVCCamera
+        init_args:
+          device: /dev/video0
+          width: 640
+          height: 480
     execution:
       class_path: physicalai.runtime.SyncExecution
       init_args:
