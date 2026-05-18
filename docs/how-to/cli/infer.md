@@ -1,9 +1,11 @@
 # CLI: Infer
 
-Use this command to run inference from a config or an exported package.
+*(Planned API — interface may change.)*
+
+Run inference from a config or exported policy package.
 
 ```bash
-physicalai infer --config inference.yaml --input observation.npz --output action.npz
+physicalai infer --config inference.yaml
 ```
 
 Example config:
@@ -12,16 +14,16 @@ Example config:
 model:
   class_path: physicalai.inference.InferenceModel
   init_args:
-    export_dir: ./exports/act_policy
+    path: ./exports/act_policy
     backend: openvino
     device: CPU
 ```
 
-The expected Python equivalent is shown below.
+The Python equivalent:
 
 ```python
 model = InferenceModel.from_config("inference.yaml")
 action = model.select_action(observation)
 ```
 
-Use `physicalai run` for robot control loops. Use `physicalai infer` for offline inference or for single-step inference outside a runtime loop.
+Use `physicalai run` for robot control loops. Use `physicalai infer` for offline inference or testing outside a runtime loop.
