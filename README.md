@@ -4,101 +4,282 @@
 
 <div align="center">
 
-**Runtime package for exported robot policies, cameras, and robots**
+**Runtime package for deploying robot policies trained with Physical AI Studio**
 
-[Quick Start](#quick-start) •
-[Examples](#examples) •
-[Docs](#docs)
+[Installation](#installation) •
+[Camera API](#camera-api) •
+[Robot API](#robot-api) •
+[Inference](#inference) •
+[Docs](#documentation)
 
 </div>
 
 ---
 
-## What This Repo Is
+## What is Physical AI Runtime?
 
-```text
-exported policy package
-    -> physicalai.inference
-    -> physicalai.capture
-    -> physicalai.robot
-```
+Physical AI Runtime provides the deployment-side components for running trained policies on real hardware. It handles camera capture, robot control, and policy inference with a unified API that works across different hardware vendors.
 
-This repository contains the runtime-side pieces for deploying policies and talking to hardware.
+**Key Features:**
 
-## What You Can Do
+- **Unified Camera API** — Same interface for UVC, RealSense, Basler, and IP cameras
+- **Robot Protocol** — Structural typing for any robot; no inheritance required
+- **Inference Engine** — Load exported policies from Studio with auto-detected backends
+- **Policy Runtime** — Control loop with observation building and action dispatch
 
-```text
-load a policy         physicalai.inference.InferenceModel
-read cameras          physicalai.capture.*
-connect robots        physicalai.robot.*
-verify hardware       examples/ and robot utilities
-```
-
-## Quick Start
-
-Install:
+## Installation
 
 ```bash
 pip install physicalai
 ```
 
-Inference:
+With hardware-specific extras:
 
-```python
-from physicalai.inference import InferenceModel
-
-model = InferenceModel.load("./exports/act_policy")
-model.reset()
-action = model.select_action(observation)
+```bash
+pip install physicalai[realsense]   # Intel RealSense cameras
+pip install physicalai[basler]      # Basler industrial cameras
+pip install physicalai[so101]       # SO-101 robot arm
+pip install physicalai[trossen]     # Trossen WidowX robots
 ```
 
-Camera read:
+---
+
+## Camera API
+
+All cameras share a unified interface: `connect()`, `read()`, `read_latest()`, and context manager support. Switch hardware without changing application code.
 
 ```python
 from physicalai.capture import UVCCamera
 
-with UVCCamera(device="0") as camera:
+with UVCCamera(device="/dev/video0", width=640, height=480, fps=30) as camera:
     frame = camera.read_latest()
-    print(frame.data.shape)
+    print(frame.data.shape)  # (480, 640, 3)
+    print(frame.timestamp)   # monotonic timestamp
 ```
 
-Robot verify:
+<details>
+<summary><strong>Intel RealSense (RGB + Depth)</strong></summary>
+
+```python
+from physicalai.capture import RealSenseCamera
+
+with RealSenseCamera(serial="123456789", width=640, height=480, fps=30) as camera:
+    frame = camera.read_latest()
+    print(frame.data.shape)       # (480, 640, 3) RGB
+    print(frame.depth.shape)      # (480, 640) depth in mm
+```
+
+</details>
+
+<details>
+<summary><strong>Basler Industrial Camera</strong></summary>
+
+```python
+from physicalai.capture import BaslerCamera
+
+with BaslerCamera(serial="12345678", width=1920, height=1080, fps=60) as camera:
+    frame = camera.read_latest()
+    print(frame.data.shape)  # (1080, 1920, 3)
+```
+
+</details>
+
+<details>
+<summary><strong>Multi-Camera Sync</strong></summary>
+
+```python
+from physicalai.capture import UVCCamera, RealSenseCamera, read_cameras
+
+cameras = {
+    "wrist": UVCCamera(device="/dev/video0"),
+    "overhead": RealSenseCamera(serial="123456789"),
+}
+
+# Connect all
+for cam in cameras.values():
+    cam.connect()
+
+# Read from all cameras concurrently
+frames = read_cameras(cameras)
+print(frames["wrist"].data.shape)
+print(frames["overhead"].depth.shape)
+
+# Cleanup
+for cam in cameras.values():
+    cam.disconnect()
+```
+
+</details>
+
+<details>
+<summary><strong>Camera Discovery</strong></summary>
+
+```python
+from physicalai.capture import discover_all, UVCCamera
+
+# Discover all connected cameras
+devices = discover_all()
+for dev in devices:
+    print(f"{dev.camera_type}: {dev.device_id} - {dev.name}")
+
+# Discover specific type
+uvc_devices = UVCCamera.discover()
+```
+
+</details>
+
+---
+
+## Robot API
+
+Robots implement a Protocol-based interface. Any class with `connect()`, `disconnect()`, `get_observation()`, `send_action()`, and `joint_names` works — no inheritance required.
+
+```python
+from physicalai.robot import SO101
+
+robot = SO101(port="/dev/ttyUSB0")
+robot.connect()
+
+obs = robot.get_observation()
+print(obs.joint_positions)  # [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+print(robot.joint_names)    # ['shoulder_pan', 'shoulder_lift', ...]
+
+robot.send_action(target_positions, goal_time=0.1)
+robot.disconnect()
+```
+
+<details>
+<summary><strong>Trossen WidowX-AI</strong></summary>
+
+```python
+from physicalai.robot import WidowXAI
+
+robot = WidowXAI()
+robot.connect()
+
+obs = robot.get_observation()
+print(obs.joint_positions)
+
+robot.send_action(target_positions)
+robot.disconnect()
+```
+
+</details>
+
+<details>
+<summary><strong>Bimanual WidowX-AI</strong></summary>
+
+```python
+from physicalai.robot import BimanualWidowXAI
+
+robot = BimanualWidowXAI()
+robot.connect()
+
+obs = robot.get_observation()
+# Joint positions for both arms concatenated
+print(obs.joint_positions.shape)
+
+robot.send_action(bimanual_targets)
+robot.disconnect()
+```
+
+</details>
+
+<details>
+<summary><strong>Robot Verification</strong></summary>
 
 ```python
 from physicalai.robot import SO101, verify_robot
 
 robot = SO101(port="/dev/ttyUSB0")
-verify_robot(robot)
+verify_robot(robot)  # Interactive joint-by-joint check
 ```
 
-## Examples
+</details>
 
-SO-101 joint read:
+---
 
-```bash
-python examples/so101/read_joints.py --port /dev/ttyUSB0
+## Inference
+
+Load exported policies from Physical AI Studio. The `InferenceModel` class auto-detects the backend (OpenVINO, ONNX, TorchScript) and handles action chunking automatically.
+
+```python
+from physicalai.inference import InferenceModel
+
+# Load exported policy
+model = InferenceModel.load("./exports/act_policy")
+
+# Reset state for new episode
+model.reset()
+
+# Run inference
+action = model.select_action(observation)
 ```
 
-SO-101 motion check:
+<details>
+<summary><strong>With Explicit Backend</strong></summary>
 
-```bash
-python examples/so101/move_joints.py --port /dev/ttyUSB0 --calibration calibration.json
+```python
+from physicalai.inference import InferenceModel
+
+# Force specific backend
+model = InferenceModel.load(
+    "./exports/act_policy",
+    backend="openvino",
+    device="GPU",
+)
 ```
 
-UVC camera read:
+</details>
 
-```bash
-python examples/capture/read_uvc_camera.py
+---
+
+## Policy Runtime
+
+The `PolicyRuntime` orchestrates the full control loop: reading cameras, building observations, running inference, and dispatching actions. *(Planned API — documents target design.)*
+
+```python
+from physicalai.runtime import PolicyRuntime
+
+runtime = PolicyRuntime.from_manifest("./policy_manifest.yaml")
+
+with runtime:
+    runtime.run()  # Blocks until stopped
 ```
 
-## Docs
+<details>
+<summary><strong>Manifest Example</strong></summary>
+
+```yaml
+policy:
+  path: ./exports/act_policy
+
+cameras:
+  wrist:
+    type: uvc
+    device: /dev/video0
+    width: 640
+    height: 480
+  
+robot:
+  type: so101
+  port: /dev/ttyUSB0
+
+runtime:
+  frequency: 30
+```
+
+</details>
+
+---
+
+## Documentation
 
 - [Documentation Home](./docs/index.md)
-- [Getting Started](./docs/getting-started/README.md)
-- [How-To Guides](./docs/how-to/README.md)
-- [Explanation](./docs/explanation/README.md)
-- [Reference](./docs/reference/README.md)
-- [Design Docs](./docs/design/README.md)
+- [Getting Started](./docs/getting-started/)
+- [How-To Guides](./docs/how-to/)
+- [Concepts](./docs/explanation/)
+- [API Reference](./docs/reference/)
 
 ## Contributing
 
