@@ -58,7 +58,8 @@ physicalai run --model ./exports/act_policy --robot robot.yaml
 
 | Resource                                | Description                       |
 | --------------------------------------- | --------------------------------- |
-| [Design Docs](./docs/design/README.md)  | Architecture and design proposals |
+| [Documentation](./docs/index.md)        | Tutorials, how-to guides, explanations, and reference |
+| [Design Docs](./docs/design/README.md)  | Detailed architecture and design proposals |
 | [Contributing](./CONTRIBUTING.md)       | Development setup and guidelines  |
 | [Support](./SUPPORT.md)                 | Help and reporting guidance       |
 | [Security](./SECURITY.md)               | Vulnerability disclosure policy   |
