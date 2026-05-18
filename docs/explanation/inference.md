@@ -19,12 +19,12 @@ observation
 
 ## APIs
 
-| Method | Use |
-| --- | --- |
-| `select_action(observation)` | Returns one action immediately. |
+| Method                              | Use                                   |
+| ----------------------------------- | ------------------------------------- |
+| `select_action(observation)`        | Returns one action immediately.       |
 | `predict_action_chunk(observation)` | Returns a chunk for runtime queueing. |
-| `reset()` | Clears state for a new episode. |
-| `close()` | Releases backend resources. |
+| `reset()`                           | Clears state for a new episode.       |
+| `close()`                           | Releases backend resources.           |
 
 ## Chunked Policies
 

@@ -4,16 +4,16 @@ PhysicalAI provides runtime components for working with exported robot policies.
 
 ## Quick Links
 
-| I want to | Go to |
-| --- | --- |
-| Understand the documentation structure | [Documentation Plan](documentation-plan.md) |
-| Install the package | [Installation](getting-started/installation.md) |
-| Run first inference | [Quickstart](getting-started/quickstart.md) |
-| Run a policy on a robot | [Run a Policy](getting-started/run-a-policy.md) |
-| Write runtime YAML | [Runtime Config](how-to/config/write-runtime-config.md) |
-| Use the runtime CLI | [CLI Run](how-to/cli/run.md) |
-| Understand architecture | [Architecture](explanation/architecture.md) |
-| Look up schemas | [Config Schema](reference/config-schema.md) |
+| I want to                              | Go to                                                   |
+| -------------------------------------- | ------------------------------------------------------- |
+| Understand the documentation structure | [Documentation Plan](documentation-plan.md)             |
+| Install the package                    | [Installation](getting-started/installation.md)         |
+| Run first inference                    | [Quickstart](getting-started/quickstart.md)             |
+| Run a policy on a robot                | [Run a Policy](getting-started/run-a-policy.md)         |
+| Write runtime YAML                     | [Runtime Config](how-to/config/write-runtime-config.md) |
+| Use the runtime CLI                    | [CLI Run](how-to/cli/run.md)                            |
+| Understand architecture                | [Architecture](explanation/architecture.md)             |
+| Look up schemas                        | [Config Schema](reference/config-schema.md)             |
 
 ## Documentation Structure
 

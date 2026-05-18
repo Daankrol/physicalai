@@ -39,10 +39,10 @@ class CameraType(StrEnum):
 
 ## Read Semantics
 
-| Method | Semantics |
-| --- | --- |
-| `read()` | Returns the next frame, blocks, and preserves sequence. |
+| Method          | Semantics                                                      |
+| --------------- | -------------------------------------------------------------- |
+| `read()`        | Returns the next frame, blocks, and preserves sequence.        |
 | `read_latest()` | Returns the newest frame, does not block, and may skip frames. |
-| `async_read()` | Provides an async wrapper around `read()`. |
+| `async_read()`  | Provides an async wrapper around `read()`.                     |
 
 Camera instances are not thread-safe.

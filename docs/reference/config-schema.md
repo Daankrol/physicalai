@@ -21,12 +21,12 @@ key: value
 
 The `ComponentSpec` fields are listed below.
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `class_path` | string | Fully qualified import path |
-| `init_args` | object | Constructor keyword arguments |
-| `type` | string | Registered short name |
-| extra fields | any | Flat constructor args for registry mode |
+| Field        | Type   | Description                             |
+| ------------ | ------ | --------------------------------------- |
+| `class_path` | string | Fully qualified import path             |
+| `init_args`  | object | Constructor keyword arguments           |
+| `type`       | string | Registered short name                   |
+| extra fields | any    | Flat constructor args for registry mode |
 
 The core rules are straightforward.
 
@@ -57,15 +57,15 @@ runtime:
 
 The most common runtime fields are listed below.
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `runtime` | `ComponentSpec` | Runtime orchestrator |
-| `runtime.init_args.fps` | number | Control loop frequency |
-| `runtime.init_args.robot` | `ComponentSpec` | Robot implementation |
-| `runtime.init_args.model` | `ComponentSpec` | Inference model |
-| `runtime.init_args.execution` | `ComponentSpec` | Execution strategy |
-| `runtime.init_args.cameras` | mapping | Optional camera components |
-| `runtime.init_args.callbacks` | list | Optional runtime callbacks |
+| Field                         | Type            | Description                |
+| ----------------------------- | --------------- | -------------------------- |
+| `runtime`                     | `ComponentSpec` | Runtime orchestrator       |
+| `runtime.init_args.fps`       | number          | Control loop frequency     |
+| `runtime.init_args.robot`     | `ComponentSpec` | Robot implementation       |
+| `runtime.init_args.model`     | `ComponentSpec` | Inference model            |
+| `runtime.init_args.execution` | `ComponentSpec` | Execution strategy         |
+| `runtime.init_args.cameras`   | mapping         | Optional camera components |
+| `runtime.init_args.callbacks` | list            | Optional runtime callbacks |
 
 ## InferenceConfig
 
@@ -80,16 +80,16 @@ model:
 
 The most common inference fields are listed below.
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `model` | `ComponentSpec` | Inference model component |
-| `model.init_args.export_dir` | string | Exported package directory |
-| `model.init_args.backend` | string | Backend name or `auto` |
-| `model.init_args.device` | string | Backend device or `auto` |
+| Field                        | Type            | Description                |
+| ---------------------------- | --------------- | -------------------------- |
+| `model`                      | `ComponentSpec` | Inference model component  |
+| `model.init_args.export_dir` | string          | Exported package directory |
+| `model.init_args.backend`    | string          | Backend name or `auto`     |
+| `model.init_args.device`     | string          | Backend device or `auto`   |
 
 ## Config vs Manifest
 
-| Schema | Use |
-| --- | --- |
+| Schema          | Use                                                      |
+| --------------- | -------------------------------------------------------- |
 | Workflow config | A workflow config describes a workflow before execution. |
-| Manifest | A manifest describes an exported package after export. |
+| Manifest        | A manifest describes an exported package after export.   |

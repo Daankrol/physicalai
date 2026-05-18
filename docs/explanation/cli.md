@@ -14,10 +14,10 @@ PolicyRuntime.from_config("runtime.yaml").run(duration_s=60)
 
 ## Runtime Commands
 
-| Command | Purpose |
-| --- | --- |
-| `physicalai infer` | Runs offline inference. |
-| `physicalai run` | Runs a policy on robot hardware. |
+| Command            | Purpose                           |
+| ------------------ | --------------------------------- |
+| `physicalai infer` | Runs offline inference.           |
+| `physicalai run`   | Runs a policy on robot hardware.  |
 | `physicalai serve` | Serves policy inference remotely. |
 
 ## Training Commands

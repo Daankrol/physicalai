@@ -14,13 +14,13 @@ hardware: {}
 
 Fields:
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `format` | string | Manifest format, usually `policy_package` |
-| `version` | string | Manifest schema version |
-| `policy` | object | Policy identity and source metadata |
-| `model` | object | Artifacts and inference pipeline |
-| `hardware` | object | Expected robot and camera metadata |
+| Field      | Type   | Description                               |
+| ---------- | ------ | ----------------------------------------- |
+| `format`   | string | Manifest format, usually `policy_package` |
+| `version`  | string | Manifest schema version                   |
+| `policy`   | object | Policy identity and source metadata       |
+| `model`    | object | Artifacts and inference pipeline          |
+| `hardware` | object | Expected robot and camera metadata        |
 
 ## Policy
 
@@ -52,13 +52,13 @@ model:
 
 Fields:
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `n_obs_steps` | integer | Observation history length |
-| `artifacts` | mapping | Logical artifact name to file path |
-| `runner` | `ComponentSpec` | Inference runner |
-| `preprocessors` | list[`ComponentSpec`] | Preprocessing pipeline |
-| `postprocessors` | list[`ComponentSpec`] | Postprocessing pipeline |
+| Field            | Type                  | Description                        |
+| ---------------- | --------------------- | ---------------------------------- |
+| `n_obs_steps`    | integer               | Observation history length         |
+| `artifacts`      | mapping               | Logical artifact name to file path |
+| `runner`         | `ComponentSpec`       | Inference runner                   |
+| `preprocessors`  | list[`ComponentSpec`] | Preprocessing pipeline             |
+| `postprocessors` | list[`ComponentSpec`] | Postprocessing pipeline            |
 
 ## Hardware
 

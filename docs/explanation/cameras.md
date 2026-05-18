@@ -10,11 +10,11 @@ camera.disconnect()
 
 ## Read Modes
 
-| Method | Behavior | Use |
-| --- | --- | --- |
-| `read()` | next frame, blocking | recording or complete frame streams |
-| `read_latest()` | newest frame, non-blocking | real-time control |
-| `async_read()` | async wrapper around `read()` | async applications |
+| Method          | Behavior                      | Use                                 |
+| --------------- | ----------------------------- | ----------------------------------- |
+| `read()`        | next frame, blocking          | recording or complete frame streams |
+| `read_latest()` | newest frame, non-blocking    | real-time control                   |
+| `async_read()`  | async wrapper around `read()` | async applications                  |
 
 ## Runtime Use
 

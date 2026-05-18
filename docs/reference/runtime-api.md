@@ -43,11 +43,11 @@ class Execution:
 
 The expected execution implementations are listed below.
 
-| Class | Purpose |
-| --- | --- |
-| `SyncExecution` | runs inference in the runtime thread |
-| `AsyncExecution` | runs inference in a thread or process worker |
-| `RemoteExecution` | requests inference from a remote server |
+| Class             | Purpose                                      |
+| ----------------- | -------------------------------------------- |
+| `SyncExecution`   | runs inference in the runtime thread         |
+| `AsyncExecution`  | runs inference in a thread or process worker |
+| `RemoteExecution` | requests inference from a remote server      |
 
 ## `ActionQueue`
 

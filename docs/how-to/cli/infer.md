@@ -1,6 +1,6 @@
 # CLI: Infer
 
-*(Planned API — interface may change.)*
+_(Planned API — interface may change.)_
 
 Run inference from a config or exported policy package.
 

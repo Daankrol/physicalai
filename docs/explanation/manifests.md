@@ -38,10 +38,10 @@ hardware:
 
 ## Manifest vs Workflow Config
 
-| Data | Meaning |
-| --- | --- |
+| Data            | Meaning                                                                       |
+| --------------- | ----------------------------------------------------------------------------- |
 | Workflow config | A workflow config describes the desired workflow before running or exporting. |
-| Manifest | A manifest describes the concrete exported package after build or export. |
+| Manifest        | A manifest describes the concrete exported package after build or export.     |
 
 To load the package, use the exported directory.
 

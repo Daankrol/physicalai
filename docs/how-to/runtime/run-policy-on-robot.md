@@ -69,10 +69,10 @@ physicalai run --config runtime.yaml --duration-s 60
 
 ## Component Responsibilities
 
-| Object | Owns |
-| --- | --- |
-| `InferenceModel` | policy inference |
-| `PolicyRuntime` | robot loop and timing |
-| `Execution` | where inference runs |
-| `Robot` | hardware IO |
-| `Camera` | image capture |
+| Object           | Owns                  |
+| ---------------- | --------------------- |
+| `InferenceModel` | policy inference      |
+| `PolicyRuntime`  | robot loop and timing |
+| `Execution`      | where inference runs  |
+| `Robot`          | hardware IO           |
+| `Camera`         | image capture         |

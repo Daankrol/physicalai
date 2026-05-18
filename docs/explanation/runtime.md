@@ -9,13 +9,13 @@ runtime.run(duration_s=60)
 
 ## Responsibilities
 
-| Component | Owns | Does not own |
-| --- | --- | --- |
-| `InferenceModel` | model load, preprocess, inference, postprocess | robot loop timing |
-| `Execution` | where inference runs | robot IO |
-| `ActionQueue` | action chunks and buffering | model inference |
-| `PolicyRuntime` | observe, request inference, send action, callbacks, timing | policy math |
-| `Robot` | hardware connection, observations, actions | policy inference |
+| Component        | Owns                                                       | Does not own      |
+| ---------------- | ---------------------------------------------------------- | ----------------- |
+| `InferenceModel` | model load, preprocess, inference, postprocess             | robot loop timing |
+| `Execution`      | where inference runs                                       | robot IO          |
+| `ActionQueue`    | action chunks and buffering                                | model inference   |
+| `PolicyRuntime`  | observe, request inference, send action, callbacks, timing | policy math       |
+| `Robot`          | hardware connection, observations, actions                 | policy inference  |
 
 ## Loop
 
@@ -36,13 +36,13 @@ while running:
 
 ## Execution Modes
 
-| Mode | Where inference runs | Use |
-| --- | --- | --- |
-| `SyncExecution(mode="single_action")` | runtime thread | simple policies |
-| `SyncExecution(mode="chunk")` | runtime thread | chunk policies without background worker |
-| `AsyncExecution(transport="thread")` | worker thread | avoid blocking control loop |
-| `AsyncExecution(transport="process")` | worker process | isolate model execution |
-| `RemoteExecution` | remote server | robot host without policy weights |
+| Mode                                  | Where inference runs | Use                                      |
+| ------------------------------------- | -------------------- | ---------------------------------------- |
+| `SyncExecution(mode="single_action")` | runtime thread       | simple policies                          |
+| `SyncExecution(mode="chunk")`         | runtime thread       | chunk policies without background worker |
+| `AsyncExecution(transport="thread")`  | worker thread        | avoid blocking control loop              |
+| `AsyncExecution(transport="process")` | worker process       | isolate model execution                  |
+| `RemoteExecution`                     | remote server        | robot host without policy weights        |
 
 ## Product Workflows
 

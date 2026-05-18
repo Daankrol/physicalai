@@ -10,10 +10,10 @@ physicalai run --config runtime.yaml [--duration-s 60]
 
 Arguments:
 
-| Argument | Required | Description |
-| --- | --- | --- |
-| `--config` | yes | Runtime config YAML |
-| `--duration-s` | no | Stop after the given duration in seconds |
+| Argument       | Required | Description                              |
+| -------------- | -------- | ---------------------------------------- |
+| `--config`     | yes      | Runtime config YAML                      |
+| `--duration-s` | no       | Stop after the given duration in seconds |
 
 The equivalent Python call is shown below.
 
@@ -23,7 +23,7 @@ PolicyRuntime.from_config("runtime.yaml").run(duration_s=60)
 
 ## `physicalai infer`
 
-*(Planned API — interface may change.)*
+_(Planned API — interface may change.)_
 
 ```bash
 physicalai infer --config inference.yaml
@@ -31,9 +31,9 @@ physicalai infer --config inference.yaml
 
 Arguments:
 
-| Argument | Required | Description |
-| --- | --- | --- |
-| `--config` | yes | Inference config YAML |
+| Argument   | Required | Description           |
+| ---------- | -------- | --------------------- |
+| `--config` | yes      | Inference config YAML |
 
 ## `physicalai serve`
 

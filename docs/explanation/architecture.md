@@ -11,15 +11,15 @@ exported package
 
 ## Components
 
-| Component | Responsibility |
-| --- | --- |
-| `Manifest` | describes exported artifacts and the inference pipeline |
-| `InferenceModel` | loads artifacts and computes actions |
-| `PolicyRuntime` | runs the robot control loop |
-| `Execution` | decides where inference runs |
-| `ActionQueue` | buffers and merges action chunks |
-| `Robot` | reads state and sends commands |
-| `Camera` | reads image frames |
+| Component        | Responsibility                                          |
+| ---------------- | ------------------------------------------------------- |
+| `Manifest`       | describes exported artifacts and the inference pipeline |
+| `InferenceModel` | loads artifacts and computes actions                    |
+| `PolicyRuntime`  | runs the robot control loop                             |
+| `Execution`      | decides where inference runs                            |
+| `ActionQueue`    | buffers and merges action chunks                        |
+| `Robot`          | reads state and sends commands                          |
+| `Camera`         | reads image frames                                      |
 
 ## Package Boundary
 
