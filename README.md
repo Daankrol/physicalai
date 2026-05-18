@@ -199,7 +199,7 @@ verify_robot(robot)  # Interactive joint-by-joint check
 
 ## Inference
 
-Load exported policies from [Physical AI Studio](https://github.com/open-edge-platform/physical-ai-studio). The `InferenceModel` class auto-detects the backend (OpenVINO, ExecuTorch or ONNX) and handles action chunking automatically.
+Load exported policies from Physical AI Studio. The `InferenceModel` class auto-detects the backend (OpenVINO, ONNX, TorchScript) and handles action chunking automatically.
 
 ```python
 from physicalai.inference import InferenceModel
@@ -234,37 +234,97 @@ model = InferenceModel.load(
 
 ## Policy Runtime
 
-The `PolicyRuntime` orchestrates the full control loop: reading cameras, building observations, running inference, and dispatching actions. *(Planned API — documents target design.)*
+The `PolicyRuntime` orchestrates the full control loop: connecting hardware, reading cameras, building observations, running inference, and dispatching actions to the robot. *(Planned API — documents target design.)*
 
 ```python
 from physicalai.runtime import PolicyRuntime
 
-runtime = PolicyRuntime.from_manifest("./policy_manifest.yaml")
+runtime = PolicyRuntime.from_config("runtime.yaml")
+runtime.run(duration_s=60)
+```
 
-with runtime:
-    runtime.run()  # Blocks until stopped
+The runtime ties together all components — cameras, robot, inference model, and execution strategy — into a single control loop:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      PolicyRuntime                          │
+│                                                             │
+│   ┌──────────┐    ┌─────────────┐    ┌──────────────────┐  │
+│   │ Cameras  │───▶│ Observation │───▶│ InferenceModel   │  │
+│   └──────────┘    │   Builder   │    │  .select_action  │  │
+│                   └─────────────┘    └────────┬─────────┘  │
+│   ┌──────────┐                                │            │
+│   │  Robot   │◀───────────────────────────────┘            │
+│   └──────────┘         actions                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 <details>
-<summary><strong>Manifest Example</strong></summary>
+<summary><strong>Runtime Config (YAML)</strong></summary>
 
 ```yaml
-policy:
-  path: ./exports/act_policy
-
-cameras:
-  wrist:
-    type: uvc
-    device: /dev/video0
-    width: 640
-    height: 480
-  
-robot:
-  type: so101
-  port: /dev/ttyUSB0
-
+# runtime.yaml
 runtime:
-  frequency: 30
+  class_path: physicalai.runtime.PolicyRuntime
+  init_args:
+    fps: 30
+    robot:
+      class_path: physicalai.robot.so101.SO101
+      init_args:
+        port: /dev/ttyACM0
+    model:
+      class_path: physicalai.inference.InferenceModel
+      init_args:
+        path: ./exports/act_policy
+    cameras:
+      wrist:
+        class_path: physicalai.capture.UVCCamera
+        init_args:
+          device: /dev/video0
+          width: 640
+          height: 480
+      overhead:
+        class_path: physicalai.capture.RealSenseCamera
+        init_args:
+          serial: "123456789"
+    execution:
+      class_path: physicalai.runtime.SyncExecution
+      init_args:
+        mode: chunk
+```
+
+</details>
+
+<details>
+<summary><strong>Runtime Config (Python)</strong></summary>
+
+```python
+from physicalai.runtime import PolicyRuntime, SyncExecution
+from physicalai.inference import InferenceModel
+from physicalai.capture import UVCCamera, RealSenseCamera
+from physicalai.robot import SO101
+
+runtime = PolicyRuntime(
+    fps=30,
+    robot=SO101(port="/dev/ttyACM0"),
+    model=InferenceModel.load("./exports/act_policy"),
+    cameras={
+        "wrist": UVCCamera(device="/dev/video0", width=640, height=480),
+        "overhead": RealSenseCamera(serial="123456789"),
+    },
+    execution=SyncExecution(mode="chunk"),
+)
+
+runtime.run(duration_s=60)
+```
+
+</details>
+
+<details>
+<summary><strong>CLI</strong></summary>
+
+```bash
+physicalai run --config runtime.yaml --duration-s 60
 ```
 
 </details>
