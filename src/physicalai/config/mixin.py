@@ -33,7 +33,7 @@ class FromConfig:
         return cls.from_dict(config, key=key)
 
     @classmethod
-    def from_dict(cls, config: dict[str, Any], *, key: str | None = None) -> Self:
+    def from_dict(cls, config: Mapping[str, Any], *, key: str | None = None) -> Self:
         """Instantiate the class from a configuration dictionary."""
         return cast("Self", instantiate_obj_from_dict(config, key=key, target_cls=cls))
 
@@ -71,7 +71,7 @@ class FromConfig:
     @classmethod
     def from_config(
         cls,
-        config: dict[str, Any] | BaseModel | object | str | Path,
+        config: Mapping[str, Any] | BaseModel | object | str | Path,
         *,
         key: str | None = None,
         recursive: bool = False,

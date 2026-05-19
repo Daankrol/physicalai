@@ -18,6 +18,9 @@ if TYPE_CHECKING:
     from typing import Any
 
 
+ConfigMapping = Mapping[str, "Any"]
+
+
 def _import_class(class_path: str) -> type:
     """Import a class from a module path."""
     try:
@@ -43,16 +46,12 @@ def _instantiate_recursive(value: "Any") -> "Any":  # noqa: ANN401
 
 
 def instantiate_obj_from_dict(
-    config: dict[str, "Any"],
+    config: ConfigMapping,
     *,
     key: str | None = None,
     target_cls: type | None = None,
 ) -> object:
     """Instantiate an object from a configuration dictionary."""
-    if not isinstance(config, Mapping):
-        msg = f"Expected configuration to be a mapping, got {type(config).__name__}"
-        raise TypeError(msg)
-
     if key is not None:
         if key not in config:
             msg = f"Configuration must contain '{key}' key. Got keys: {list(config.keys())}"
@@ -128,7 +127,7 @@ def instantiate_obj_from_file(
 
 
 def instantiate_obj(
-    config: dict[str, "Any"] | BaseModel | object | str | Path,
+    config: ConfigMapping | BaseModel | object | str | Path,
     *,
     key: str | None = None,
     target_cls: type | None = None,
