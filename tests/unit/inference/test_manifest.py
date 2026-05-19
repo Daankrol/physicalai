@@ -10,6 +10,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from physicalai.config import ComponentSpec
 from physicalai.inference.component_factory import (
     ComponentRegistry,
     component_registry,
@@ -18,7 +19,6 @@ from physicalai.inference.component_factory import (
 )
 from physicalai.inference.manifest import (
     CameraSpec,
-    ComponentSpec,
     HardwareSpec,
     Manifest,
     MetadataSpec,
@@ -30,7 +30,12 @@ from physicalai.inference.manifest import (
     TensorSpec,
     _policy_name_from_class_path,
 )
+from physicalai.inference.manifest import ComponentSpec as ManifestComponentSpec
 from physicalai.inference.runners import SinglePass
+
+
+def test_manifest_reexports_component_spec() -> None:
+    assert ManifestComponentSpec is ComponentSpec
 
 
 class TestTensorSpec:

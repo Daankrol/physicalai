@@ -6,7 +6,7 @@
 The :class:`ComponentRegistry` maps short names (e.g. ``"single_pass"``)
 to fully-qualified class paths so that manifests can use concise
 identifiers instead of full dotted paths.  The :func:`instantiate_component`
-factory resolves a :class:`~physicalai.inference.manifest.ComponentSpec`
+factory resolves a :class:`~physicalai.config.ComponentSpec`
 to an object instance, supporting both ``type`` + flat params and
 ``class_path`` + ``init_args`` resolution modes.
 """
@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from physicalai.inference.manifest import ComponentSpec
+    from physicalai.config import ComponentSpec
 
 
 class ComponentRegistry:

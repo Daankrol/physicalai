@@ -18,19 +18,16 @@ resolution modes:
 
 from __future__ import annotations
 
-import inspect
 import json
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from physicalai.config import ComponentSpec
 
 MANIFEST_VERSION = "1.0"
 MANIFEST_FORMAT = "policy_package"
-
-# Alias builtin ``type`` so it remains accessible inside classes that
-# define a Pydantic field with the same name (e.g. ``ComponentSpec.type``).
-_type = type
 
 
 class TensorSpec(BaseModel):
@@ -145,104 +142,6 @@ class PolicySpec(BaseModel):
     model_config = ConfigDict(frozen=True)
     name: str = ""
     source: PolicySource = Field(default_factory=PolicySource)
-
-
-class ComponentSpec(BaseModel):
-    """Dual-resolution component descriptor for dynamic instantiation.
-
-    Supports two resolution modes:
-
-    1. **type + flat params** (LeRobot-compatible)::
-
-        {"type": "single_pass"}
-
-    2. **class_path + init_args** (full-power PhysicalAI)::
-
-        {"class_path": "physicalai.inference.runners.SinglePass",
-         "init_args": {}}
-
-    When ``class_path`` is present it takes precedence.  When only
-    ``type`` is present, the :class:`ComponentRegistry` resolves it.
-
-    Attributes:
-        type: Registered short name (e.g. ``"single_pass"``).
-        class_path: Fully-qualified class path for direct import.
-        init_args: Keyword arguments forwarded to the constructor
-            (used with ``class_path`` mode).
-    """
-
-    model_config = ConfigDict(frozen=True, extra="allow")
-    type: str = ""
-    class_path: str = ""
-    init_args: dict[str, Any] = Field(default_factory=dict)
-
-    @model_validator(mode="after")
-    def _must_have_type_or_class_path(self) -> ComponentSpec:
-        if not self.type and not self.class_path:
-            msg = "ComponentSpec requires either 'type' or 'class_path'"
-            raise ValueError(msg)
-        return self
-
-    @property
-    def flat_params(self) -> dict[str, Any]:
-        """Return extra fields as flat params (type-based resolution).
-
-        Returns all fields stored in ``model_extra`` — these are the
-        flat kwargs passed alongside ``type`` in LeRobot-style specs.
-        """
-        return dict(self.model_extra) if self.model_extra else {}
-
-    @classmethod
-    def from_class(cls, target: _type, **overrides: Any) -> ComponentSpec:  # noqa: ANN401
-        """Build a spec by introspecting a class constructor.
-
-        Parameters not present in *overrides* use their default values.
-        Required parameters without defaults must be provided in *overrides*
-        or a TypeError is raised.
-
-        For nested components, pass a ``ComponentSpec`` instance (e.g. from
-        another ``from_class`` call) — it will be serialized automatically.
-
-        Args:
-            target: The class to build a spec for.
-            **overrides: Values that override or supply constructor args.
-
-        Returns:
-            A ``ComponentSpec`` ready for serialisation or instantiation.
-
-        Raises:
-            TypeError: If required parameters are missing from overrides.
-        """
-        sig = inspect.signature(target)
-        init_args: dict[str, Any] = {}
-        missing: list[str] = []
-
-        for name, param in sig.parameters.items():
-            if name == "self":
-                continue
-            if name in overrides:
-                value = overrides[name]
-            elif param.default is not param.empty:
-                value = param.default
-            else:
-                missing.append(name)
-                continue
-
-            if isinstance(value, ComponentSpec):
-                value = value.model_dump()
-            init_args[name] = value
-
-        if missing:
-            msg = (
-                f"Missing required parameters for {target.__qualname__}: "
-                f"{', '.join(missing)}. Pass them as keyword arguments."
-            )
-            raise TypeError(msg)
-
-        return cls(
-            class_path=f"{target.__module__}.{target.__qualname__}",
-            init_args=init_args,
-        )
 
 
 class ModelSpec(BaseModel):

@@ -15,13 +15,14 @@ import yaml
 from physicalai.inference.adapters import adapter_registry, get_adapter
 from physicalai.inference.component_factory import instantiate_component, resolve_artifact
 from physicalai.inference.constants import ACTION
-from physicalai.inference.manifest import ComponentSpec, Manifest
+from physicalai.inference.manifest import Manifest
 from physicalai.inference.runners import get_runner
 from physicalai.inference.utils import ActionCursor
 
 if TYPE_CHECKING:
     import numpy as np
 
+    from physicalai.config import ComponentSpec
     from physicalai.inference.adapters.base import RuntimeAdapter
     from physicalai.inference.callbacks.base import Callback
     from physicalai.inference.postprocessors.base import Postprocessor

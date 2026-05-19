@@ -49,8 +49,8 @@ def get_runner(source: Manifest | dict[str, Any]) -> InferenceRunner:
 
     runner_spec = _extract_runner_spec(source)
     if runner_spec is not None:
+        from physicalai.config import ComponentSpec  # noqa: PLC0415
         from physicalai.inference.component_factory import instantiate_component  # noqa: PLC0415
-        from physicalai.inference.manifest import ComponentSpec  # noqa: PLC0415
 
         runner = instantiate_component(ComponentSpec.model_validate(runner_spec))
         if not isinstance(runner, InferenceRunner):
