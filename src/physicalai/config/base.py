@@ -78,7 +78,18 @@ class Config:
         with path.open() as f:
             data = yaml.safe_load(f)
 
+        if data is None:
+            data = {}
+        if not isinstance(data, Mapping):
+            msg = f"Expected YAML root to be a mapping, got {type(data).__name__}"
+            raise TypeError(msg)
+
         if "init_args" in data:
             data = data["init_args"]
+            if data is None:
+                data = {}
+            if not isinstance(data, Mapping):
+                msg = f"Expected 'init_args' to be a mapping, got {type(data).__name__}"
+                raise TypeError(msg)
 
         return cls.from_dict(data)

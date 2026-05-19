@@ -6,6 +6,7 @@
 """Configuration mixins for adding from_config functionality."""
 
 import dataclasses
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Self, cast
 
@@ -24,6 +25,11 @@ class FromConfig:
         """Load configuration from a YAML file and instantiate the class."""
         with Path(file_path).open("r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
+        if config is None:
+            config = {}
+        if not isinstance(config, Mapping):
+            msg = f"Expected YAML root to be a mapping, got {type(config).__name__}"
+            raise TypeError(msg)
         return cls.from_dict(config, key=key)
 
     @classmethod

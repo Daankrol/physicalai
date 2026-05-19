@@ -7,6 +7,7 @@
 
 import dataclasses
 import importlib
+from collections.abc import Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -48,11 +49,18 @@ def instantiate_obj_from_dict(
     target_cls: type | None = None,
 ) -> object:
     """Instantiate an object from a configuration dictionary."""
+    if not isinstance(config, Mapping):
+        msg = f"Expected configuration to be a mapping, got {type(config).__name__}"
+        raise TypeError(msg)
+
     if key is not None:
         if key not in config:
             msg = f"Configuration must contain '{key}' key. Got keys: {list(config.keys())}"
             raise ValueError(msg)
         config = config[key]
+        if not isinstance(config, Mapping):
+            msg = f"Configuration at key '{key}' must be a mapping, got {type(config).__name__}"
+            raise TypeError(msg)
 
     if "class_path" in config:
         cls = _import_class(config["class_path"])
@@ -111,6 +119,11 @@ def instantiate_obj_from_file(
     """Instantiate an object from a YAML/JSON configuration file."""
     with Path(file_path).open("r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
+    if config is None:
+        config = {}
+    if not isinstance(config, Mapping):
+        msg = f"Expected YAML root to be a mapping, got {type(config).__name__}"
+        raise TypeError(msg)
     return instantiate_obj_from_dict(config, key=key, target_cls=target_cls)
 
 
