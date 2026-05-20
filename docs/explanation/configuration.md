@@ -39,16 +39,18 @@ Direct class mode:
 ```yaml
 class_path: physicalai.capture.UVCCamera
 init_args:
-  device: /dev/video0
+  device: /dev/v4l/by-id/usb-Example_Camera-video-index0
   width: 640
   height: 480
 ```
+
+> **Tip:** Use stable device paths (`/dev/v4l/by-id/...`) in config files. Index-based paths like `/dev/video0` can change after reboot.
 
 Registry mode:
 
 ```yaml
 type: uvc
-device: /dev/video0
+device: /dev/v4l/by-id/usb-Example_Camera-video-index0
 width: 640
 height: 480
 ```

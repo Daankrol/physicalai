@@ -12,6 +12,7 @@ Install hardware extras only when you need a specific backend or robot integrati
 pip install "physicalai[realsense]"
 pip install "physicalai[so101]"
 pip install "physicalai[robots]"
+pip install "physicalai[capture]"  # all camera backends + IPC transport
 ```
 
 For local development, install the repository environment and run the test suite.

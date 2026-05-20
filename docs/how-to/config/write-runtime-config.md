@@ -22,7 +22,7 @@ runtime:
       wrist:
         class_path: physicalai.capture.UVCCamera
         init_args:
-          device: /dev/video0
+          device: /dev/v4l/by-id/usb-Example_Wrist_Camera-video-index0
           width: 640
           height: 480
     execution:

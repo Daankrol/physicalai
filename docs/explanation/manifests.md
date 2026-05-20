@@ -34,6 +34,11 @@ hardware:
   robots:
     - name: main
       type: SO101
+  cameras:
+    - name: wrist
+      type: uvc
+    - name: overhead
+      type: realsense
 ```
 
 ## Manifest vs Workflow Config

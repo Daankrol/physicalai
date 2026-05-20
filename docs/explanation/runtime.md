@@ -21,20 +21,18 @@ runtime.run(duration_s=60)
 
 ## Loop
 
-```python
+The runtime loop follows this general pattern:
+
+```text
 while running:
-    obs = robot.get_observation()
-    obs.update(read_cameras(cameras))
-
-    execution.maybe_request(obs)
-    action = action_queue.pop_or_none()
-
-    if action is None:
-        action = hold_position()
-
-    robot.send_action(action)
+    observation = get_robot_state() + get_camera_frames()
+    maybe_request_inference(observation)
+    action = get_next_action_or_hold()
+    send_action_to_robot(action)
     sleep_until_next_tick()
 ```
+
+The exact observation structure and merging strategy may change as the API stabilizes.
 
 ## Execution Modes
 
@@ -43,7 +41,6 @@ while running:
 | `SyncExecution(mode="single_action")` | runtime thread       | simple policies                          |
 | `SyncExecution(mode="chunk")`         | runtime thread       | chunk policies without background worker |
 | `AsyncExecution(transport="thread")`  | worker thread        | avoid blocking control loop              |
-| `AsyncExecution(transport="process")` | worker process       | isolate model execution                  |
 | `RemoteExecution`                     | remote server        | robot host without policy weights        |
 
 ## Product Workflows

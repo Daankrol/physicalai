@@ -28,20 +28,7 @@ execution:
     transport: thread
 ```
 
-Use this mode when model latency should not block robot timing.
-
-## Process Worker
-
-This mode runs inference in a worker process.
-
-```yaml
-execution:
-  class_path: physicalai.runtime.AsyncExecution
-  init_args:
-    transport: process
-```
-
-Use this mode when model execution should be isolated from the robot process.
+Use this mode when model latency should not block robot timing. Since inference backends typically release the GIL, thread-based execution works well for most use cases.
 
 ## Remote
 
