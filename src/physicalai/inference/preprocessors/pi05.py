@@ -83,8 +83,9 @@ class Pi05Preprocessor(Preprocessor):
         prompts: list[str] = []
         for i, t in enumerate(task):
             cleaned = t.strip().replace("_", " ").replace("\n", " ")
-            state_str = " ".join(map(str, discretized[i]))
-            prompts.append(f"Task: {cleaned}, State: {state_str};\nAction: ")
+            prompts.append(cleaned)
+            #state_str = " ".join(map(str, discretized[i]))
+            #prompts.append(f"Task: {cleaned}, State: {state_str};\nAction: ")
 
         inputs[TASK] = prompts
 
