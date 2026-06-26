@@ -44,12 +44,11 @@ OpenVINO points their pre-release matrix at it. Same test, multiple runners: we
 catch _our_ changes on every PR; we run an independent early-warning against new
 OpenVINO wheels; OpenVINO catches _their_ changes before release.
 
-## Basic Test
+## Smoke Test
 
-[`tests/integration/test_ov_model_compat.py`](../../tests/integration/test_ov_model_compat.py),
-marker `ov_smoke`. It runs the three contract stages against discovered model
-exports and records the `openvino` / `openvino_tokenizers` versions in each
-result.
+A pytest integration test (marker `ov_smoke`) that runs the three contract
+stages against discovered model exports and records the `openvino` /
+`openvino_tokenizers` versions in each result.
 
 Coverage needs **two models** to cover the contract:
 
