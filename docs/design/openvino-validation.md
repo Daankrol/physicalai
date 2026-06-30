@@ -75,9 +75,9 @@ catch _our_ changes and released OV bumps; OpenVINO's pre-release matrix catches
 _their_ changes before release.
 
 **What OV runs:** smoke runs by pinned tag, so OV adds it to their pre-release
-matrix. Golden-action joins once seeding makes it portable (see caveat below).
-Gym E2E uses the in-house LIBERO gyms on OV's GPU runners. PAI maintains all
-tiers; OV provides the hardware.
+matrix. Golden-action runs the record/replay across the platform matrix on OV
+runners. Gym E2E uses the in-house LIBERO gyms on OV's GPU runners. PAI maintains
+all tiers; OV provides the hardware.
 
 ## Smoke Test
 
@@ -112,22 +112,41 @@ pre-release wheels, so physicalai does not duplicate a weekly run.
 A regression test that pins the model's output to a stored reference (the
 "golden" value):
 
-1. **Record once:** feed a _fixed_ observation through the full pipeline
-   (`InferenceModel.load → predict_action_chunk`) and save the resulting action
-   chunk to disk as the reference.
-2. **Check every run:** feed the _same_ observation and compare the new action
-   chunk against the stored reference within a tolerance.
+1. **Record once:** seed the IR (set the in-graph `RandomUniform`
+   `op_seed`/`global_seed`), compile, feed a _fixed_ observation through the full
+   pipeline (`InferenceModel.load → predict_action_chunk`) N times, and save the
+   ordered action chunks to disk as the reference.
+2. **Check every run:** re-initialize the seeded model from scratch, replay the
+   same N calls, and assert each chunk matches the stored reference.
 
 If OpenVINO changes the numerics, the output drifts from the reference and the
 test fails. It answers a different question than smoke: smoke proves "it ran",
 golden proves "it produced the **same numbers**".
 
-**Caveat — models are not deterministic.** Verified 2026-06-29: ACT and pi05
-return different outputs for identical input (ACT ~8 abs diff from CVAE latent
-sampling; pi05 ~0.3 from diffusion noise). So golden-action requires either a
-fixed seed for an exact match, or a statistical comparison with per-model
-tolerance. Plain element equality will not work — standing up reliable seeding
-is the gating prerequisite for this tier.
+**Why the output varies — and how it's pinned (verified 2026-06-30).** The
+randomness lives inside the exported model graph — not in physicalai's Python
+code, and not in any model input. The pi05 IR draws its denoising noise from a
+single `RandomUniform` op exported with `global_seed=0, op_seed=0`, and the
+OpenVINO spec says zero seeds produce a non-deterministic sequence. The fix is to
+set non-zero seeds on that op — an export/IR-level change, not a runtime setting.
+On pi05 (CPU, OV 2026.1) the output drifts ~0.3 abs across repeated calls with
+the default seeds; non-zero seeds make it reproducible. We confirmed this two
+independent ways — a `replace_node` graph transform and an in-memory IR-text
+patch — and both produced bit-for-bit identical output.
+
+**A seed fixes the noise _sequence_, not a single value.** Each inference draws
+the next value in the sequence, so repeated calls on one loaded model still
+differ (~0.15–0.46 abs). But the sequence itself is reproducible: the Nth call
+after a fresh load always returns the same value. So the test records the
+sequence once and replays it against a freshly loaded model — which is why the
+steps above re-initialize before each check. Verified 2026-06-30: all 10 recorded
+pi05 action chunks matched **bit-exactly (max abs diff 0)** after a full reload,
+so plain equality works on a fixed `(device, precision, OpenVINO version)`. ACT
+works the same way.
+
+**Cross-device still needs tolerance.** Bit-exactness holds per
+`(device, precision, OpenVINO version)`; the GPU matrix (PTL/B580/B60/B70)
+differs in kernel numerics, so keep a per-device reference (or tolerance) there.
 
 ## Performance
 
@@ -191,7 +210,10 @@ trend across versions. Dashboards and notification wiring are OV-side.
   hosted CI) and ACT has none, so the gate needs a small tokenizer model.
 - Wire `ov_smoke` into [`library.yml`](../../.github/workflows/library.yml) as a
   PR gate, plus the Renovate-triggered early-warning run.
-- Add the golden-action replay tier (needs seeding — see caveat — full pi05 pipeline).
+- Add the golden-action seeded record/replay tier — seed the IR's `RandomUniform`
+  (`op_seed`/`global_seed`), record N chunks, replay after re-init; mechanism
+  validated in
+  [`scripts/validate_ov_seeding.ipynb`](../../scripts/validate_ov_seeding.ipynb).
 - Provision OV GPU runners (PTL iGPU, B580, B60, B70) for GPU smoke, perf, and gym E2E.
 - Add the performance tier across the platform matrix.
 - Review with Piotr Wolnowski; agree pipeline ownership + RC release gate.
