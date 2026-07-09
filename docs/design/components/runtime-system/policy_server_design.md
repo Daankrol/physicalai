@@ -1,6 +1,13 @@
 # PolicyServer and RemoteExecution
 
-This is the remote inference design for `PolicyRuntime`.
+This is the remote inference design for the runtime.
+
+> **Status: speculative, not implemented.** `PolicyServer` and
+> `RemoteExecution` do not exist yet — this document proposes how remote
+> inference would fit into the shipped `RobotRuntime`/`ActionSource` design
+> (see [runtime_design.md](./runtime_design.md)) once built. Terminology here
+> follows that design (`RobotRuntime` + `PolicySource`, not the retired
+> `PolicyRuntime`).
 
 ## Goal
 
@@ -9,11 +16,12 @@ Run the robot loop on one host and the policy model on another host.
 ```text
 Robot host                              Server host
 ----------                              -----------
-PolicyRuntime                           PolicyServer
+RobotRuntime                            PolicyServer
   Robot                                   InferenceModel
   cameras                                 runner / backend
-  ActionQueue                             predict_action_chunk()
-  RemoteExecution  <------ gRPC ------>   warmup / health
+  PolicySource                            predict_action_chunk()
+    ActionQueue
+    RemoteExecution  <------ gRPC ------>   warmup / health
 ```
 
 The robot host owns timing and action dispatch. The server host owns model inference.
@@ -21,20 +29,22 @@ The robot host owns timing and action dispatch. The server host owns model infer
 ## Robot Host
 
 ```python
-from physicalai.runtime import PolicyRuntime, RemoteExecution
+from physicalai.runtime import RobotRuntime, PolicySource, RemoteExecution
 from physicalai.inference.remote import RemoteInferenceModel
 
-runtime = PolicyRuntime(
+runtime = RobotRuntime(
     robot=robot,
-    model=RemoteInferenceModel(endpoint="grpc://gpu-host:50051"),
-    execution=RemoteExecution(endpoint="grpc://gpu-host:50051"),
+    action_source=PolicySource(
+        model=RemoteInferenceModel(endpoint="grpc://gpu-host:50051"),
+        execution=RemoteExecution(endpoint="grpc://gpu-host:50051"),
+    ),
     fps=30,
 )
 
 runtime.run()
 ```
 
-`RemoteExecution` implements the same interface as sync and async execution:
+`RemoteExecution` would implement the same interface as sync and async execution:
 
 ```python
 class RemoteExecution(Execution):
@@ -44,7 +54,7 @@ class RemoteExecution(Execution):
     def stop(self): ...
 ```
 
-It sends observation snapshots to the server and pushes returned chunks into the local `ActionQueue`.
+It sends observation snapshots to the server and pushes returned chunks into the local `ActionQueue` owned by `PolicySource`.
 
 ## Server Host
 
@@ -76,23 +86,29 @@ model:
 ## Data Flow
 
 ```text
-PolicyRuntime tick
-  obs = robot.get_observation()
-  execution.maybe_request(obs)
+RobotRuntime tick
+  robot_state, camera_frames = read once
+  action = action_source.update(robot_state, camera_frames, step)   # PolicySource
+
+PolicySource.update()
+  execution.maybe_request(model_input)   # RemoteExecution
 
 RemoteExecution
-  serialize obs
+  serialize model_input
   send PredictRequest
 
 PolicyServer
-  chunk = model.predict_action_chunk(obs)
+  chunk = model.predict_action_chunk(model_input)
   send PredictReply
 
 RemoteExecution
   action_queue.push_chunk(chunk)
 
-PolicyRuntime tick
-  action = action_queue.pop_or_none()
+PolicySource.update() (same or later tick)
+  action = action_queue.pop()   # falls back to last action if empty
+  return action
+
+RobotRuntime tick
   robot.send_action(action)
 ```
 
@@ -138,18 +154,18 @@ PolicyServer calls model.predict_action_chunk(...)
 server-side runner uses FlowMatching(guidance=RTC())
 ```
 
-The client still owns `ActionQueue` and `RTCQueueMerger`. The server returns chunks; it does not smooth or dispatch actions.
+The client-side `PolicySource` still owns `ActionQueue` and `RTCQueueMerger`. The server returns chunks; it does not smooth or dispatch actions.
 
 ## Failure Policy
 
-| Failure                                   | Behavior                                                  |
-| ----------------------------------------- | --------------------------------------------------------- |
-| Cannot connect at startup                 | `start()` raises; runtime exits cleanly                   |
-| Connection lost with no request in flight | reconnect until `reconnect_budget_s` is exhausted         |
-| Connection lost with request in flight    | drop that request; next observation creates a new request |
-| Server error                              | surface error on next runtime call                        |
-| Deadline exceeded                         | drop request; continue with next tick/request             |
-| Schema mismatch                           | fail during handshake                                     |
+| Failure                                   | Behavior                                                                                  |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Cannot connect at startup                 | `PolicySource.connect()` raises; runtime's connect/disconnect rollback tears down cleanly |
+| Connection lost with no request in flight | reconnect until `reconnect_budget_s` is exhausted                                         |
+| Connection lost with request in flight    | drop that request; next observation creates a new request                                 |
+| Server error                              | surface error on next runtime call                                                        |
+| Deadline exceeded                         | drop request; continue with next tick/request                                             |
+| Schema mismatch                           | fail during handshake                                                                     |
 
 Do not retry stale observations. In control loops, a late retry is usually worse than dropping the request.
 
@@ -172,9 +188,32 @@ It uses the same runtime-side CLI as `physicalai run`, without Torch or Lightnin
 - model hot-swap semantics beyond rejecting in-flight requests
 - low-level transport optimization beyond gRPC defaults
 
+## Config
+
+Follows the runtime's single `action_source:` schema (see
+[runtime_design.md](./runtime_design.md#config-one-schema-no-shorthand)) — no
+flat/legacy shorthand:
+
+```yaml
+runtime:
+  robot: { class_path: physicalai.robot.SO101, init_args: { port: /dev/ttyACM0 } }
+  action_source:
+    class_path: physicalai.runtime.PolicySource
+    init_args:
+      model:
+        class_path: physicalai.inference.remote.RemoteInferenceModel
+        init_args: { endpoint: grpc://gpu-host:50051 }
+      execution:
+        class_path: physicalai.runtime.RemoteExecution
+        init_args: { endpoint: grpc://gpu-host:50051 }
+  fps: 30.0
+```
+
 ## Build Target
 
-Build after local `PolicyRuntime`, `AsyncExecution`, and `ActionQueue` are stable.
+Build after local `RobotRuntime`, `PolicySource`, `AsyncExecution`, and
+`ActionQueue` are stable (all shipped today; `RemoteExecution`/`PolicyServer`
+are the only pieces this document proposes).
 
 Acceptance test:
 
