@@ -56,20 +56,15 @@ def _sub_collision_determinism(fdp: atheris.FuzzedDataProvider) -> None:
         result_a = _call_prepare_inputs(inputs_a, [dot_key])
         result_b = _call_prepare_inputs(inputs_b, [dot_key])
     except KeyError:
-        return  # Acceptable — key may not survive the filter
+        return  # key may not survive the filter
+    except ValueError:
+        return  # collision correctly rejected — expected outcome per I-7
 
-    # Both calls must succeed or both fail; if both succeed, each must return
-    # the same tensor (whichever side of the collision wins must be consistent).
-    if dot_key in result_a and dot_key in result_b:
-        val_a = result_a[dot_key]
-        val_b = result_b[dot_key]
-        # At minimum the shapes must match — if the winner differs the shapes
-        # could differ, which is the actual safety bug (wrong tensor fed to model).
-        assert val_a.shape == val_b.shape, (
-            f"_prepare_inputs collision is non-deterministic: "
-            f"order-A produced shape {val_a.shape}, order-B produced {val_b.shape} "
-            f"for key {dot_key!r}"
-        )
+    # Neither call raised: collision was silently resolved, which is a regression.
+    raise AssertionError(
+        f"_prepare_inputs silently resolved flat+nested collision for key {dot_key!r} "
+        f"without raising ValueError; regression against I-7"
+    )
 
 
 @atheris.instrument_func
@@ -104,14 +99,15 @@ def _sub_no_crash(fdp: atheris.FuzzedDataProvider) -> None:
 
     try:
         result = _call_prepare_inputs(inputs, expected)
-    except KeyError:
-        return  # Acceptable — a requested key was not present
+    except (KeyError, ValueError):
+        return  # Acceptable — missing key or collision between flat/nested key
 
-    # Oracle: result values must be ndarray instances (not raw dicts)
-    for v in result.values():
-        assert isinstance(v, np.ndarray), (
-            f"_prepare_inputs returned a non-ndarray value: {type(v).__name__}"
-        )
+    # Oracle: only applies when flattening ran (passthrough returns nested dicts as-is)
+    if expected is not None:
+        for v in result.values():
+            assert isinstance(v, np.ndarray), (
+                f"_prepare_inputs returned a non-ndarray value: {type(v).__name__}"
+            )
 
 
 @atheris.instrument_func
