@@ -257,6 +257,15 @@ def test_discover_returns_device_info_list(realsense_cls: tuple) -> None:
     assert devices[0].manufacturer == "RealSense"
 
 
+def test_discover_reuses_context_across_calls(realsense_cls: tuple) -> None:
+    """discover_realsense() creates the pyrealsense2 context only once."""
+    camera_cls, mock_rs = realsense_cls
+    camera_cls.discover()
+    camera_cls.discover()
+    camera_cls.discover()
+    mock_rs.context.assert_called_once()
+
+
 def test_discover_returns_empty_when_no_sdk() -> None:
     """discover_realsense() returns empty list when SDK import fails."""
     sys.modules.pop("pyrealsense2", None)
