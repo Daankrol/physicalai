@@ -14,6 +14,7 @@ from physicalai.inference.preprocessors.new_line import NewLinePreprocessor
 from physicalai.inference.preprocessors.ov_tokenizer import OVTokenizer
 from physicalai.inference.preprocessors.pi05 import Pi05Preprocessor
 from physicalai.inference.preprocessors.resize import ResizeMode, ResizePreprocessor
+from physicalai.inference.preprocessors.rldx1 import Rldx1Preprocessor
 from physicalai.inference.preprocessors.smolvla import ResizeSmolVLA
 from physicalai.inference.preprocessors.stats_normalizer import StatsNormalizer
 from physicalai.inference.preprocessors.to_tensor import ToFloatTensorPreprocessor
@@ -25,6 +26,7 @@ __all__ = [
     "OVTokenizer",
     "Pi05Preprocessor",
     "Preprocessor",
+    "Rldx1Preprocessor",
     "ResizeMode",
     "ResizePreprocessor",
     "ResizeSmolVLA",

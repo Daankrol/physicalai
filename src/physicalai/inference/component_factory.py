@@ -107,6 +107,7 @@ component_registry.register("new_line", "physicalai.inference.preprocessors.NewL
 component_registry.register("hf_tokenizer", "physicalai.inference.preprocessors.HFTokenizer")
 component_registry.register("ov_tokenizer", "physicalai.inference.preprocessors.OVTokenizer")
 component_registry.register("pi05", "physicalai.inference.preprocessors.Pi05Preprocessor")
+component_registry.register("rldx1", "physicalai.inference.preprocessors.Rldx1Preprocessor")
 component_registry.register("to_float_tensor", "physicalai.inference.preprocessors.ToFloatTensorPreprocessor")
 
 # Postprocessors
