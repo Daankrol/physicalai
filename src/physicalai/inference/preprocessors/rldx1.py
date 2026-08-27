@@ -57,10 +57,7 @@ _PROMPT_TEMPLATE = "<|im_start|>user\n{task}{vision_blocks}<|im_end|>\n"
 # RLDX-1 model input keys (see Rldx1Model.forward / Rldx1Preprocessor upstream).
 PIXEL_VALUES = "pixel_values"
 IMAGE_GRID_THW = "image_grid_thw"
-IMAGE_WISE_ENCODING = "image_wise_encoding"
-NUM_VIEWS = "num_views"
-NUM_FRAMES = "num_frames"
-EMBODIMENT_ID = "embodiment_id"
+MAX_STATE_DIM = 64
 
 
 def _formalize_language(text: str) -> str:
@@ -91,6 +88,8 @@ class Rldx1Preprocessor(Preprocessor):
             alignment. Must be divisible by ``patch_size * merge_size``.
         num_views: Number of camera views per VTC step.
         num_frames: Number of VTC temporal frames per view.
+        max_state_dim: Padded state dimension. Shorter states are zero-padded
+            on the trailing feature axis after coercion to ``(B, 1, D)``.
         embodiment_id: Per-embodiment projector slot in the MSAT action head.
         patch_size: Qwen3-VL vision tower patch size.
         temporal_patch_size: Qwen3-VL temporal patch size.
@@ -101,7 +100,9 @@ class Rldx1Preprocessor(Preprocessor):
         self,
         image_resolution: tuple[int, int],
         num_views: int = 1,
-        num_frames: int = 4,
+        # TODO(Eugene): set num frames to 1 for now for VTC.
+        num_frames: int = 1,
+        max_state_dim: int = MAX_STATE_DIM,
         embodiment_id: int = 0,
         patch_size: int = _PATCH_SIZE,
         temporal_patch_size: int = _TEMPORAL_PATCH_SIZE,
@@ -126,6 +127,7 @@ class Rldx1Preprocessor(Preprocessor):
         self._image_resolution = image_resolution
         self._num_views = num_views
         self._num_frames = num_frames
+        self._max_state_dim = max_state_dim
         self._embodiment_id = embodiment_id
         self._patch_size = patch_size
         self._temporal_patch_size = temporal_patch_size
@@ -154,17 +156,19 @@ class Rldx1Preprocessor(Preprocessor):
                 float32, plus ``task`` (list[str] or str) and ``state``.
 
         Returns:
-            Updated dict with ``pixel_values`` ``(B, num_images * grid_h *
-            grid_w, C * temporal_patch_size * patch_size**2)``,
+            Updated dict with ``pixel_values`` ``(num_images * grid_h *
+            grid_w, C * temporal_patch_size * patch_size**2)`` for the common
+            single-sample inference path, or ``(B, num_images * grid_h * grid_w,
+            C * temporal_patch_size * patch_size**2)`` for batched inputs,
             ``image_grid_thw`` ``(B, num_images, 3)``, ``task`` (placeholder-
-            expanded prompt strings), ``image_wise_encoding``, ``num_views``,
-            ``num_frames``, ``embodiment_id`` (all ``(B,)``).
+            expanded prompt strings), and optionally ``state``.
         """
         inputs = dict(inputs)
         batch_frames = self._collect_frame_major_frames(inputs)
         batch_size = len(batch_frames)
 
-        inputs[PIXEL_VALUES] = np.stack([self._patchify(frames) for frames in batch_frames], axis=0)
+        pixel_values = [self._patchify(frames) for frames in batch_frames]
+        inputs[PIXEL_VALUES] = pixel_values[0] if batch_size == 1 else np.stack(pixel_values, axis=0)
         inputs[IMAGE_GRID_THW] = np.tile(self._image_grid_thw_row, (batch_size, self._num_images, 1))
 
         tasks = inputs.get(TASK)
@@ -176,16 +180,14 @@ class Rldx1Preprocessor(Preprocessor):
             _PROMPT_TEMPLATE.format(task=_formalize_language(t), vision_blocks=self._vision_blocks) for t in tasks
         ]
 
-        inputs[IMAGE_WISE_ENCODING] = np.ones(batch_size, dtype=np.bool_)
-        inputs[NUM_VIEWS] = np.full(batch_size, self._num_views, dtype=np.int64)
-        inputs[NUM_FRAMES] = np.full(batch_size, self._num_frames, dtype=np.int64)
-        inputs[EMBODIMENT_ID] = np.full(batch_size, self._embodiment_id, dtype=np.int64)
-
         state = inputs.get(STATE)
         if state is not None:
             state_arr = np.asarray(state)
+            if state_arr.ndim == 2:  # noqa: PLR2004  (B, D) -> (B, 1, D)
+                state_arr = np.expand_dims(state_arr, axis=1)
             if state_arr.ndim == 3:  # (B, T, D) VTC window -> current-step state only.  # noqa: PLR2004
                 state_arr = state_arr[:, -1:, :]
+            state_arr = _pad_last_dim(state_arr, self._max_state_dim)
             inputs[STATE] = state_arr
 
         return inputs
@@ -242,21 +244,27 @@ class Rldx1Preprocessor(Preprocessor):
 
     @staticmethod
     def _per_sample_frames(view_array: np.ndarray) -> list[list[np.ndarray]]:
-        """Split a ``(B, T, H, W, C)``/``(B, T, C, H, W)`` array into per-sample HWC uint8 frame lists.
+        """Split a ``(B, T, H, W, C)``/``(B, T, C, H, W)`` or 4-D array into per-sample HWC uint8 frame lists.
 
         Returns:
             ``batch_size`` lists of ``(H, W, 3)`` uint8 frames.
         """
         arr = np.asarray(view_array)
-        expected_ndim = 5
-        if arr.ndim != expected_ndim:
-            msg = f"Expected a (B, T, H, W, C)/(B, T, C, H, W) view array, got shape {arr.shape}"
+        if arr.ndim == 4:  # noqa: PLR2004 - (B, C, H, W) or (B, H, W, C)
+            arr = np.expand_dims(arr, axis=1)
+        elif arr.ndim != 5:  # noqa: PLR2004
+            msg = (
+                "Expected a (B, T, H, W, C)/(B, T, C, H, W) or (B, H, W, C)/(B, C, H, W) view array, "
+                f"got shape {arr.shape}"
+            )
             raise ValueError(msg)
         channels_first = arr.shape[2] == _RGB_CHANNELS
         if channels_first:
             arr = np.transpose(arr, (0, 1, 3, 4, 2))  # -> (B, T, H, W, C)
         if arr.dtype != np.uint8:
-            arr = np.clip(arr, 0, 255).astype(np.uint8)
+            if np.issubdtype(arr.dtype, np.floating) and arr.size > 0 and np.nanmax(arr) <= 1.0:
+                arr = arr * 255.0
+            arr = np.clip(np.nan_to_num(arr, nan=0.0), 0, 255).astype(np.uint8)
         return [[arr[b, t] for t in range(arr.shape[1])] for b in range(arr.shape[0])]
 
     def _patchify(self, frames: list[np.ndarray]) -> np.ndarray:
@@ -301,3 +309,12 @@ class Rldx1Preprocessor(Preprocessor):
             num_images * grid_h * grid_w,
             channels * temporal * patch_size * patch_size,
         ).astype(np.float32)
+
+
+def _pad_last_dim(array: np.ndarray, new_dim: int) -> np.ndarray:
+    """Zero-pad the trailing feature dimension up to ``new_dim``."""
+    if array.shape[-1] >= new_dim:
+        return array
+    pad_width = [(0, 0)] * array.ndim
+    pad_width[-1] = (0, new_dim - array.shape[-1])
+    return np.pad(array, pad_width, mode="constant")
