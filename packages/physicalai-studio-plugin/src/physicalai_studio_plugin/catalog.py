@@ -18,6 +18,7 @@ from .factory import CatalogRobotFactory
 if TYPE_CHECKING:
     from .assets import RobotAsset
     from .probe import RobotProbe
+    from .zero_calibration import RobotZeroCalibration
 
 
 @dataclass(frozen=True)
@@ -62,7 +63,7 @@ Return the plain driver (for example ``physicalai.robot.SO101``), not a
 
 The driver's class must therefore be decorated with
 ``physicalai.config.export_config``, because Studio exports it with
-``to_config`` to hand the owner a construction recipe. An undecorated class
+``Config.from_instance()`` to hand the owner a construction recipe. An undecorated class
 fails the build with ``ConfigError``.
 """
 
@@ -80,6 +81,7 @@ class RobotCatalogDefinition(Generic[_PayloadT]):
 
     adapter_options: RobotAdapterOptions = field(default_factory=RobotAdapterOptions)
     probe: RobotProbe[_PayloadT] | None = None
+    zero_calibration: RobotZeroCalibration[Any] | None = None
 
 
 class RobotCatalogRegistry(Protocol):

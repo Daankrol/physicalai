@@ -511,7 +511,7 @@ class TestRobotRuntimeConfig:
         from physicalai.runtime import RobotRuntime
 
         runtime = _make_full_runtime(inference_model)
-        # The bare to_config shape (top-level class_path) — no manual rewrite
+        # The bare Config recipe shape (top-level class_path) — no manual rewrite
         # to ``runtime:`` needed on either load path.
         cfg_path = tmp_path / "runtime_export.json"
         cfg_path.write_text(json.dumps(Config.from_instance(runtime).to_dict()))
@@ -641,7 +641,7 @@ class TestRobotRuntimeConfig:
         from physicalai.runtime import RobotRuntime
 
         params = list(inspect.signature(RobotRuntime.__init__).parameters)
-        assert params == ["self", "robot", "action_source", "fps", "cameras", "callbacks"]
+        assert params == ["self", "robot", "action_source", "fps", "cameras", "callbacks", "interpolator"]
 
     def test_nested_shared_robot_and_shared_camera(
         self, inference_model: Any, _patch_adapter: MagicMock
