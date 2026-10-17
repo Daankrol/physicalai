@@ -93,24 +93,36 @@ Notes:
 
 ## Smoke-test SO-101 leader torque control
 
-Use a clear workspace, keep the emergency stop reachable, and provide the
-leader's calibrated normalized-position JSON. Start with the no-movement check:
+Stop Studio and other controllers using the arm. Use a clear workspace, keep
+the emergency stop reachable, and provide the connected arm's own calibration
+JSON. The script uses leader mode even on follower hardware, so support the arm
+before connecting: torque-off can let it fall under gravity. Use a fresh owner
+name and start without an intentional movement:
 
 ```bash
 uv sync --extra transport --extra so101 --extra tests
 uv run --no-sync pytest tests/unit/robot/test_so101.py tests/unit/robot/transport/test_owner_worker.py tests/unit/robot/transport/test_owner_handshake.py tests/unit/robot/transport/test_shared_robot.py -q
-uv run --no-sync python examples/runtime/shared_robot_torque_smoke.py \\
-  --port /dev/serial/by-id/<leader> \\
-  --calibration ~/.cache/physicalai/robots/<leader-calibration>.json \\
+uv run --no-sync python examples/runtime/shared_robot_torque_smoke.py \
+  --port /dev/serial/by-id/<leader> \
+  --calibration ~/.cache/physicalai/robots/<leader-calibration>.json \
   --name pr307-leader-test
 ```
 
-The script asks before enabling torque, publishes the leader's current pose,
-then explicitly disables torque. To test a small physical movement, pass one
-joint and a delta of at most one normalized unit, for example
-`--joint shoulder_pan --delta 1`. It asks for a second confirmation and waits
-for the measured pose to reach the target. Omit `--joint` to avoid commanded
-movement.
+The script waits for you at each stage:
+
+1. Type `CONNECT` after supporting the arm. A newly connected leader starts
+   with torque off.
+2. Type `ENABLE`. After the current-pose command, the script stays torque-on
+   at the `DISABLE` prompt so you can observe it. Do not force the joints.
+3. Support the arm and type `DISABLE`. Check its torque-off behavior while
+   the script waits for Enter before disconnecting.
+
+To test a small physical movement, pass one joint and a delta of at most one
+normalized unit, for example `--joint shoulder_pan --delta 1`. The script also
+requires `MOVE` before sending that target, then waits for the measured pose
+to arrive. It still waits at `DISABLE` afterwards. Omit `--joint` to send only
+the current pose. Ctrl+C or a closed terminal input attempts torque-off cleanup;
+force-killing the process cannot guarantee cleanup.
 
 `SharedRobot.send_action()` is fire-and-forget. The no-movement check confirms
 the torque request/reply and action publication, not that the owner applied the

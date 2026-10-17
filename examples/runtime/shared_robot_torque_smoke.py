@@ -83,6 +83,9 @@ def main() -> None:
     cleanup_error: Exception | None = None
 
     try:
+        print("This test uses leader mode, even if the connected hardware is a follower.")
+        if input("Support the arm: connecting turns torque OFF. Type CONNECT to continue: ") != "CONNECT":
+            raise SystemExit("Cancelled before connecting")
         robot.connect()
         before = robot.get_observation()
         print("Joints:", robot.joint_names)
@@ -123,6 +126,13 @@ def main() -> None:
         else:
             wait_for_fresh_observation(robot, current.timestamp, args.timeout)
             print("PASS: owner state continued after the command (send_action is fire-and-forget)")
+
+        if input("Torque is ON. Inspect without forcing joints; support the arm, then type DISABLE: ") != "DISABLE":
+            raise SystemExit("Cancelled; attempting torque-off cleanup")
+        robot.set_torque(enabled=False)
+        torque_requested = False
+        print("PASS: torque disable acknowledged")
+        input("Torque is OFF (request acknowledged). Check the supported arm, then press Enter to disconnect: ")
     finally:
         if torque_requested:
             try:
