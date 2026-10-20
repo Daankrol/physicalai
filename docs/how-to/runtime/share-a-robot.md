@@ -131,6 +131,52 @@ that the SO-101 driver rejects leader actions while torque is off. If torque-off
 is not acknowledged, stop and inspect the arm before continuing; do not assume
 the software state matches the hardware.
 
+## Test leader-to-follower alignment without Studio
+
+The standalone check below reads the calibrated follower pose once and moves the
+leader toward that fixed target. It does not load a policy or Studio. Start with
+the arms in matching, clear postures and a small offset: the script rejects a
+joint gap above 5 normalized units. Use each arm's own calibration JSON, with
+matching physical joint conventions.
+
+Stop Studio and other controllers first. Connecting enables follower torque and
+disables leader torque. Support both arms safely, keep clear during movement,
+and keep the emergency stop reachable. The script attempts leader torque-off
+on success, failure, or Ctrl+C; the follower remains held. A force-kill or
+hardware failure can prevent cleanup.
+
+From the torque-control branch of the physicalai checkout, run:
+
+```bash
+uv sync --extra so101 --extra transport
+uv run --no-sync python examples/runtime/align_so101_leader.py \
+  --leader-port /dev/serial/by-id/LEADER \
+  --leader-calibration /path/to/leader-calibration.json \
+  --follower-port /dev/serial/by-id/FOLLOWER \
+  --follower-calibration /path/to/follower-calibration.json
+```
+
+Replace the port and calibration placeholders. The script requires `CONNECT`
+before opening ports and `ALIGN` before enabling leader torque. It prints the
+joint order, follower target, commanded leader targets, measured leader pose,
+and maximum position error.
+Movement is capped at 1 normalized unit per second with a 15-second deadline;
+success requires fresh measured positions within 0.25 units of the target.
+
+Run the same command again with `--shared` to exercise `SharedRobot`. Let the
+first command finish and any shared owners exit before rerunning or opening
+Studio. The shared owners have a two-second idle timeout after disconnect.
+
+- If direct serial alignment fails, investigate the driver, calibration, or
+  hardware before changing Studio.
+- If direct alignment works but `--shared` fails, investigate owner/transport
+  behavior. A torque acknowledgment alone does not prove that actions arrived.
+- If both work but Studio does not, compare Studio's target, error, and timing
+  against this check.
+
+Both modes must print `Leader torque OFF acknowledged` after attempting motion.
+If torque-off fails, inspect and secure the leader before doing anything else.
+
 ## Attach to a known owner
 
 For manually-launched or remote owners, attach by name only — no
