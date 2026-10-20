@@ -131,70 +131,30 @@ that the SO-101 driver rejects leader actions while torque is off. If torque-off
 is not acknowledged, stop and inspect the arm before continuing; do not assume
 the software state matches the hardware.
 
-## Test leader-to-follower alignment without Studio
+## SO101 timed leader motion
 
-The standalone check below reads the calibrated follower pose once and moves the
-leader from its current pose toward that fixed target when you type `ALIGN`.
-It does not load a policy or Studio, and you do not need to match the arms by
-hand first. Use each arm's own calibration JSON, with matching physical joint
-conventions, and check that the full movement path is clear.
+A connected SO101 leader accepts `send_action(target, goal_time=3.0)` after
+`set_torque(enabled=True)` succeeds. `SharedRobot` forwards the same command to
+the owner. Targets use the arm's own calibrated joint coordinates.
 
-Stop Studio and other controllers first. Connecting enables follower torque and
-disables leader torque. Support both arms safely, keep clear during movement,
-and keep the emergency stop reachable. The script attempts leader torque-off
-on success, failure, or Ctrl+C; the follower remains held. A force-kill or
-hardware failure can prevent cleanup.
-
-From the torque-control branch of the physicalai checkout, run:
-
-```bash
-uv sync --extra so101 --extra transport
-uv run --no-sync python examples/runtime/align_so101_leader.py \
-  --leader-port /dev/serial/by-id/LEADER \
-  --leader-calibration /path/to/leader-calibration.json \
-  --follower-port /dev/serial/by-id/FOLLOWER \
-  --follower-calibration /path/to/follower-calibration.json \
-  --goal-time 3.0
-```
-
-Replace the port and calibration placeholders. The script requires `CONNECT`
-before opening ports and `ALIGN` before enabling leader torque. It prints the
-joint order, follower target, measured leader pose, and maximum position error.
-It sends one `leader.send_action(target, goal_time=3.0)` command, then only polls
-feedback. Change `--goal-time` to request a different duration; the default is
-three seconds. There is no Python loop sending intermediate position targets.
-
-The SO101 driver reads current encoder positions and calculates per-joint speed
-limits from the requested duration. It sends calibrated target positions and
-speed limits together in one synchronized packet, matching Feetech's
+The driver reads current encoder positions and sends each target and its speed
+limit in one synchronized packet, using Feetech's
 [position/speed command format](https://github.com/ftservo/FTServo_Python/blob/main/scservo_sdk/sms_sts.py).
-STS3215 speed is expressed in encoder steps per second, as documented by
+STS3215 speeds are in encoder steps per second, as documented by
 [Waveshare](https://www.waveshare.com/wiki/ST3215_Servo#Product_Usage_Tutorial).
-The existing acceleration configuration remains unchanged. Every position
-command updates the speed limits, so a timed move does not leave a stale speed
-limit on subsequent streamed actions or the disconnect hold.
+Every command updates the speed limits; the disconnect hold clears them. The
+existing acceleration configuration remains unchanged.
 
-`goal_time` is approximate, not a guarantee of simultaneous arrival. The driver
-extends the common duration when the requested speed exceeds its hardware cap.
-Integer speed resolution and the minimum nonzero speed of one encoder step
-per second also affect timing, especially for small moves. Acceleration and
-load can delay arrival further. The check allows 15 seconds beyond the requested
-duration for settling and requires fresh measured positions within 0.25
-normalized units before it reports success and releases leader torque.
+`goal_time` is approximate. The driver extends the common duration rather than
+exceeding its hardware speed cap. Integer speed resolution, acceleration, and
+load affect actual arrival, especially for small moves. Callers must check
+fresh measured positions instead of treating elapsed time as proof of arrival.
 
-Run the same command again with `--shared` to exercise `SharedRobot`. Let the
-first command finish and any shared owners exit before rerunning or opening
-Studio. The shared owners have a two-second idle timeout after disconnect.
-
-- If direct serial alignment fails, investigate the driver, calibration, or
-  hardware before changing Studio.
-- If direct alignment works but `--shared` fails, investigate owner/transport
-  behavior. A torque acknowledgment alone does not prove that actions arrived.
-- If both work but Studio does not, compare Studio's target, error, and timing
-  against this check.
-
-Both modes must print `Leader torque OFF acknowledged` after attempting motion.
-If torque-off fails, inspect and secure the leader before doing anything else.
+Keep the full movement path clear. A leader-alignment caller must hold the
+follower, confirm compatible coordinates and matching poses, disable leader
+torque before handing control to the operator, and attempt torque-off on failure
+or cancellation. A failed torque-off acknowledgment leaves the physical state
+uncertain; inspect and secure the arm before continuing.
 
 ## Attach to a known owner
 
