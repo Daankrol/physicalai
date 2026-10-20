@@ -74,52 +74,6 @@ _FIRST_STATE_TIMEOUT = 5.0
 _TORQUE_QUERY_TIMEOUT = 12.0
 
 
-def _query_torque_result(
-    session: Any,  # noqa: ANN401
-    name: str,
-    *,
-    enabled: bool,
-) -> tuple[bool, str | None]:
-    """Request a torque change and decode the owner's reply.
-
-    Args:
-        session: Open Zenoh session.
-        name: Shared robot name used to address the owner.
-        enabled: Whether the owner should enable torque.
-
-    Returns:
-        A pair of whether the owner replied and its optional error message.
-
-    Raises:
-        RobotTransportError: If the request or response is malformed or fails.
-    """
-    request = encode_torque_request(enabled=enabled)
-    try:
-        sample = next(
-            (
-                reply.ok
-                for reply in session.get(
-                    torque_key(name),
-                    payload=request,
-                    timeout=_TORQUE_QUERY_TIMEOUT,
-                )
-                if reply.ok is not None
-            ),
-            None,
-        )
-    except Exception as exc:
-        msg = f"torque-control request to owner of {name!r} failed; torque state may be uncertain: {exc}"
-        raise RobotTransportError(msg) from exc
-
-    if sample is None:
-        return False, None
-    try:
-        return True, decode_torque_response(sample.payload.to_bytes())
-    except Exception as exc:
-        msg = f"owner of {name!r} returned an invalid torque-control response: {exc}"
-        raise RobotTransportError(msg) from exc
-
-
 def _query_metadata(session: Any, key: str, timeout: float) -> dict[str, Any] | None:  # noqa: ANN401
     """Query a ``/metadata`` key and decode the first successful reply.
 
@@ -704,13 +658,24 @@ class SharedRobot:
         if not self._connected or self._session is None:
             msg = "SharedRobot is not connected. Call connect() first."
             raise RobotNotConnectedError(msg)
-        received, error = _query_torque_result(self._session, self._name, enabled=enabled)
-        if not received:
+        request = encode_torque_request(enabled=enabled)
+        try:
+            replies = self._session.get(torque_key(self._name), payload=request, timeout=_TORQUE_QUERY_TIMEOUT)
+            sample = next((reply.ok for reply in replies if reply.ok is not None), None)
+        except Exception as exc:
+            msg = f"torque-control request to owner of {self._name!r} failed; torque state may be uncertain: {exc}"
+            raise RobotTransportError(msg) from exc
+        if sample is None:
             msg = (
                 f"owner of {self._name!r} did not reply to the torque-control request; "
                 "torque state may be uncertain because it is unreachable or uses an older physicalai transport"
             )
             raise RobotTransportError(msg)
+        try:
+            error = decode_torque_response(sample.payload.to_bytes())
+        except Exception as exc:
+            msg = f"owner of {self._name!r} returned an invalid torque-control response: {exc}"
+            raise RobotTransportError(msg) from exc
         if error is not None:
             msg = f"owner of {self._name!r} could not set torque: {error}"
             raise RobotTransportError(msg)

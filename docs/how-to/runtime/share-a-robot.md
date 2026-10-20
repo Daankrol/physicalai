@@ -105,7 +105,7 @@ uv run --no-sync pytest tests/unit/robot/test_so101.py tests/unit/robot/transpor
 uv run --no-sync python examples/runtime/shared_robot_torque_smoke.py \
   --port /dev/serial/by-id/<leader> \
   --calibration ~/.cache/physicalai/robots/<leader-calibration>.json \
-  --name pr307-leader-test
+  --name so101-torque-test
 ```
 
 The script waits for you at each stage:

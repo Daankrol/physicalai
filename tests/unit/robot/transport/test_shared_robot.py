@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import os
 import time
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import numpy as np
@@ -137,6 +139,29 @@ class TestConstruction:
 
     def test_device_ids_always_empty(self) -> None:
         assert _shared_robot("x").device_ids == ()
+
+    @pytest.mark.parametrize("enabled", [0, 1, None, "true"])
+    def test_torque_rejects_non_boolean_input(self, enabled: object) -> None:
+        with pytest.raises(TypeError, match="enabled must be a bool"):
+            _shared_robot("x").set_torque(enabled=enabled)  # type: ignore[arg-type]
+
+    @pytest.mark.parametrize("failure", ["no_reply", "bad_reply", "query_error"])
+    def test_torque_request_failure_is_not_reported_as_success(self, failure: str) -> None:
+        robot = _shared_robot("x")
+        session = MagicMock()
+        robot._connected = True
+        robot._session = session
+        if failure == "query_error":
+            session.get.side_effect = RuntimeError("query failed")
+            message = "torque state may be uncertain"
+        elif failure == "bad_reply":
+            session.get.return_value = [SimpleNamespace(ok=SimpleNamespace(payload=MagicMock(to_bytes=lambda: b"bad")))]
+            message = "invalid torque-control response"
+        else:
+            session.get.return_value = []
+            message = "did not reply"
+        with pytest.raises(RobotTransportError, match=message):
+            robot.set_torque(enabled=True)
 
     def test_remote_metadata_resolution_retries_after_scouting_settles(
         self,

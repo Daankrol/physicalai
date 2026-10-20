@@ -14,7 +14,7 @@ The driver supports two roles:
 
 * **follower** (default) — torque enabled, used for inference / deployment.
 * **leader** — torque defaults off; position actions are permitted only while
-  torque has been explicitly enabled for teleoperation or correction collection.
+  torque has been explicitly enabled for leader alignment.
 
 Calibration data can be loaded from a JSON file so that joint positions are
 reported in calibrated normalized units rather than raw servo ticks.
@@ -469,7 +469,7 @@ class SO101(Robot):
                 self._hold_position()
         except Exception:  # noqa: BLE001
             logger.exception(
-                "Failed to hold position while disconnecting SO-101; proceeding to close port.",
+                "Failed to set the safe state while disconnecting SO-101; proceeding to close port.",
             )
         finally:
             self._connection = None
@@ -750,18 +750,10 @@ class SO101(Robot):
     def set_torque(self, *, enabled: bool) -> None:
         """Enable or disable torque on all servos.
 
-        Raises:
-            ConnectionError: If a servo reports a communication or device error.
-            TypeError: If *enabled* is not a boolean.
+        Args:
+            enabled: Whether to enable torque; servo write failures propagate.
         """
-        if not isinstance(enabled, bool):
-            msg = f"enabled must be a bool, got {type(enabled).__name__}"
-            raise TypeError(msg)
-        try:
-            self._set_torque(enabled=enabled)
-        except ConnectionError as exc:
-            msg_0 = f"Could not set SO101 torque: {exc}"
-            raise ConnectionError(msg_0) from exc
+        self._set_torque(enabled=enabled)
 
     def _hold_position(self) -> None:
         """Command all servos to hold their current position.
