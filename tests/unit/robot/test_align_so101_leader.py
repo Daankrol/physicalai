@@ -18,7 +18,9 @@ def example():
     return runpy.run_path(str(script))["main"].__globals__
 
 
-def test_alignment_accumulates_steps_smaller_than_an_encoder_tick(example, monkeypatch):
+@pytest.mark.parametrize("start", [1.0, 40.0])
+@pytest.mark.parametrize("observation_delay", [0.0, 0.1])
+def test_alignment_covers_full_distance_at_bounded_speed(example, monkeypatch, start, observation_delay):
     clock = SimpleNamespace(now=0.0)
 
     def sleep(seconds):
@@ -26,17 +28,20 @@ def test_alignment_accumulates_steps_smaller_than_an_encoder_tick(example, monke
 
     monkeypatch.setitem(example, "time", SimpleNamespace(monotonic=lambda: clock.now, sleep=sleep))
     robot = MagicMock()
-    pose = np.ones(6, dtype=np.float32)
+    pose = np.full(6, start, dtype=np.float32)
     commands = []
+    send_times = []
     timestamp = 0.0
 
     def observe():
         nonlocal timestamp
         timestamp += 1.0
+        sleep(observation_delay)
         return SimpleNamespace(joint_positions=pose.copy(), timestamp=timestamp)
 
     def send(action, **kwargs):
         commands.append(action.copy())
+        send_times.append(clock.now)
         pose[:] = np.round(action, 1)
 
     robot.get_observation.side_effect = observe
@@ -45,7 +50,9 @@ def test_alignment_accumulates_steps_smaller_than_an_encoder_tick(example, monke
     example["align_leader"](robot, pose.copy(), np.zeros(6, dtype=np.float32), 0.0)
 
     assert np.max(np.abs(pose)) <= example["TOLERANCE"]
-    assert np.max(np.abs(np.diff(np.stack(commands), axis=0))) <= example["SPEED"] / example["RATE_HZ"] + 1e-6
+    steps = np.abs(np.diff(np.stack(commands), axis=0))
+    elapsed = np.diff(send_times)[:, None]
+    assert np.all(steps <= example["SPEED"] * elapsed + 1e-5)
 
 
 @pytest.mark.parametrize("shared", [False, True])
@@ -99,8 +106,3 @@ def test_failure_or_interrupt_attempts_torque_off(example, monkeypatch, tmp_path
     leader.disconnect.assert_called_once()
     follower.disconnect.assert_called_once()
     assert transport.from_config.call_count == (2 if shared else 0)
-
-
-def test_large_starting_gap_is_rejected(example):
-    with pytest.raises(ValueError, match="Align the arms more closely"):
-        example["check_gap"](np.zeros(6), np.full(6, 10.0))

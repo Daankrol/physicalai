@@ -19,8 +19,7 @@ from physicalai.robot import SO101, SharedRobot
 RATE_HZ = 30.0
 SPEED = 1.0  # Normalized units per second.
 TOLERANCE = 0.25
-MAX_START_GAP = 5.0
-TIMEOUT_S = 15.0
+SETTLE_TIMEOUT_S = 15.0
 STATE_TIMEOUT_S = 2.0
 
 
@@ -39,21 +38,12 @@ def fresh_pose(robot: SO101 | SharedRobot, after: float = float("-inf")) -> tupl
     raise TimeoutError("Robot observations stopped advancing")
 
 
-def check_gap(start: np.ndarray, target: np.ndarray) -> float:
-    """Reject a large movement before enabling torque or sending a target."""
-    gap = float(np.max(np.abs(target - start)))
-    if gap > MAX_START_GAP:
-        raise ValueError(
-            f"Starting gap {gap:.2f} exceeds {MAX_START_GAP:.2f} normalized units. "
-            "Align the arms more closely by hand and rerun."
-        )
-    return gap
-
-
 def align_leader(leader: SO101 | SharedRobot, start: np.ndarray, target: np.ndarray, timestamp: float) -> None:
     """Ramp bounded targets and require the measured leader pose to arrive."""
     commanded = start.copy()
-    deadline = time.monotonic() + TIMEOUT_S
+    started_at = time.monotonic()
+    travel_time = float(np.max(np.abs(target - start))) / SPEED
+    deadline = started_at + travel_time + SETTLE_TIMEOUT_S
     next_report = 0.0
     while time.monotonic() < deadline:
         actual, timestamp = fresh_pose(leader, timestamp)
@@ -65,8 +55,9 @@ def align_leader(leader: SO101 | SharedRobot, start: np.ndarray, target: np.ndar
         if error <= TOLERANCE:
             print("PASS: measured leader pose reached the follower target")
             return
-        # Advance the command, not the encoder reading: sub-tick steps must accumulate.
-        commanded = commanded + np.clip(target - commanded, -SPEED / RATE_HZ, SPEED / RATE_HZ)
+        # Follow elapsed time so encoder rounding and slow reads cannot stall the ramp.
+        travel = SPEED * (time.monotonic() - started_at)
+        commanded = start + np.clip(target - start, -travel, travel)
         leader.send_action(commanded, goal_time=1.0 / RATE_HZ)
         time.sleep(1.0 / RATE_HZ)
     raise TimeoutError("Leader did not reach the follower target; see the measured errors above")
@@ -127,11 +118,14 @@ def main() -> None:
         print("Joints:", leader.joint_names)
         print("Follower target:", target.round(3).tolist())
         print("Leader start:   ", start.round(3).tolist())
-        gap = check_gap(start, target)
+        gap = float(np.max(np.abs(target - start)))
         if gap <= TOLERANCE:
-            print("Already aligned; no leader torque requested. Start slightly offset to test movement.")
+            print("Already at the follower pose; no leader torque requested.")
             return
-        print(f"Maximum gap: {gap:.3f}; speed: {SPEED:.1f} units/s; deadline: {TIMEOUT_S:.0f}s")
+        print(
+            f"Maximum gap: {gap:.3f}; speed: {SPEED:.1f} units/s; "
+            f"estimated travel: {gap / SPEED:.1f}s plus up to {SETTLE_TIMEOUT_S:.0f}s to settle"
+        )
         if input("Check the path is clear and the leader is supported for torque-off. Type ALIGN to move: ") != "ALIGN":
             raise SystemExit("Cancelled before enabling leader torque")
 
@@ -140,7 +134,6 @@ def main() -> None:
         leader.set_torque(enabled=True)
         print("Leader torque ON acknowledged", flush=True)
         start, timestamp = fresh_pose(leader, timestamp)
-        check_gap(start, target)
         align_leader(leader, start, target, timestamp)
     finally:
         if torque_requested:

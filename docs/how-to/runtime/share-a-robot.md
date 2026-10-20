@@ -134,10 +134,10 @@ the software state matches the hardware.
 ## Test leader-to-follower alignment without Studio
 
 The standalone check below reads the calibrated follower pose once and moves the
-leader toward that fixed target. It does not load a policy or Studio. Start with
-the arms in matching, clear postures and a small offset: the script rejects a
-joint gap above 5 normalized units. Use each arm's own calibration JSON, with
-matching physical joint conventions.
+leader from its current pose toward that fixed target when you type `ALIGN`.
+It does not load a policy or Studio, and you do not need to match the arms by
+hand first. Use each arm's own calibration JSON, with matching physical joint
+conventions, and check that the full movement path is clear.
 
 Stop Studio and other controllers first. Connecting enables follower torque and
 disables leader torque. Support both arms safely, keep clear during movement,
@@ -160,8 +160,11 @@ Replace the port and calibration placeholders. The script requires `CONNECT`
 before opening ports and `ALIGN` before enabling leader torque. It prints the
 joint order, follower target, commanded leader targets, measured leader pose,
 and maximum position error.
-Movement is capped at 1 normalized unit per second with a 15-second deadline;
-success requires fresh measured positions within 0.25 units of the target.
+Commanded targets advance at 1 normalized unit per second. The deadline covers
+the full travel distance plus 15 seconds for settling, rather than cutting off
+longer moves after 15 seconds. The script prints the estimated travel time;
+large gaps can take minutes at this deliberately slow speed. Success requires
+fresh measured positions within 0.25 units of the target.
 
 Run the same command again with `--shared` to exercise `SharedRobot`. Let the
 first command finish and any shared owners exit before rerunning or opening
