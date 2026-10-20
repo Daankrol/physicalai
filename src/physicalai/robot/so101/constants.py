@@ -29,6 +29,9 @@ MAX_SPEED_RAD_S: Final = 4.712389
 MAX_SPEED_DEG_S: Final = float(np.degrees(MAX_SPEED_RAD_S))
 """Maximum angular velocity in deg/s."""
 
+MAX_SPEED_TICKS_S: Final = int(MAX_SPEED_DEG_S * TICKS_PER_REVOLUTION / 360.0)
+"""Maximum commanded STS3215 position-mode speed in encoder ticks/s."""
+
 # ---------------------------------------------------------------------------
 # Joint ordering
 # ---------------------------------------------------------------------------
@@ -75,6 +78,8 @@ class STS3215Addr(IntEnum):
     TORQUE_ENABLE = 40
     ACCELERATION = 41
     GOAL_POSITION = 42
+    GOAL_TIME = 44
+    GOAL_SPEED = 46
     PRESENT_POSITION = 56
 
     # Factory registers
@@ -95,5 +100,7 @@ class STS3215Len(IntEnum):
     TORQUE_ENABLE = 1
     ACCELERATION = 1
     GOAL_POSITION = 2
+    GOAL_TIME = 2
+    GOAL_SPEED = 2
     PRESENT_POSITION = 2
     MAXIMUM_ACCELERATION = 1

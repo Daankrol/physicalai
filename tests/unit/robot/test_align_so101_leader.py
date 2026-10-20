@@ -20,7 +20,7 @@ def example():
 
 @pytest.mark.parametrize("start", [1.0, 40.0])
 @pytest.mark.parametrize("observation_delay", [0.0, 0.1])
-def test_alignment_covers_full_distance_at_bounded_speed(example, monkeypatch, start, observation_delay):
+def test_alignment_sends_one_timed_target_and_waits_for_measurements(example, monkeypatch, start, observation_delay):
     clock = SimpleNamespace(now=0.0)
 
     def sleep(seconds):
@@ -29,30 +29,69 @@ def test_alignment_covers_full_distance_at_bounded_speed(example, monkeypatch, s
     monkeypatch.setitem(example, "time", SimpleNamespace(monotonic=lambda: clock.now, sleep=sleep))
     robot = MagicMock()
     pose = np.full(6, start, dtype=np.float32)
-    commands = []
-    send_times = []
+    target = np.zeros(6, dtype=np.float32)
     timestamp = 0.0
 
     def observe():
         nonlocal timestamp
         timestamp += 1.0
         sleep(observation_delay)
+        pose[:] = np.round(start * (1.0 - min(clock.now / 3.0, 1.0)), 1)
         return SimpleNamespace(joint_positions=pose.copy(), timestamp=timestamp)
 
-    def send(action, **kwargs):
-        commands.append(action.copy())
-        send_times.append(clock.now)
-        pose[:] = np.round(action, 1)
-
     robot.get_observation.side_effect = observe
-    robot.send_action.side_effect = send
 
-    example["align_leader"](robot, pose.copy(), np.zeros(6, dtype=np.float32), 0.0)
+    example["align_leader"](robot, target, 0.0, goal_time=3.0)
 
+    robot.send_action.assert_called_once()
+    np.testing.assert_array_equal(robot.send_action.call_args.args[0], target)
+    assert robot.send_action.call_args.kwargs == {"goal_time": 3.0}
     assert np.max(np.abs(pose)) <= example["TOLERANCE"]
-    steps = np.abs(np.diff(np.stack(commands), axis=0))
-    elapsed = np.diff(send_times)[:, None]
-    assert np.all(steps <= example["SPEED"] * elapsed + 1e-5)
+    assert robot.get_observation.call_count > 1
+
+
+def test_motion_timeout_does_not_resend_the_target(example, monkeypatch):
+    clock = SimpleNamespace(now=0.0)
+
+    def sleep(seconds):
+        clock.now += seconds
+
+    monkeypatch.setitem(example, "time", SimpleNamespace(monotonic=lambda: clock.now, sleep=sleep))
+    robot = MagicMock()
+    robot.get_observation.side_effect = lambda: SimpleNamespace(joint_positions=np.ones(6), timestamp=clock.now + 1.0)
+
+    with pytest.raises(TimeoutError, match="did not reach"):
+        example["align_leader"](robot, np.zeros(6, dtype=np.float32), 0.0, goal_time=3.0)
+
+    robot.send_action.assert_called_once()
+
+
+@pytest.mark.parametrize("goal_time", ["0", "-1", "nan", "inf"])
+def test_invalid_duration_is_rejected_before_connecting(example, monkeypatch, goal_time):
+    driver = MagicMock()
+    monkeypatch.setitem(example, "SO101", driver)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "align_so101_leader.py",
+            "--leader-port",
+            "unused-leader",
+            "--leader-calibration",
+            "unused-leader.json",
+            "--follower-port",
+            "unused-follower",
+            "--follower-calibration",
+            "unused-follower.json",
+            "--goal-time",
+            goal_time,
+        ],
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        example["main"]()
+
+    assert exc_info.value.code == 2
+    driver.assert_not_called()
 
 
 @pytest.mark.parametrize("shared", [False, True])

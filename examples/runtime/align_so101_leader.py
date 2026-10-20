@@ -16,8 +16,7 @@ from pathlib import Path
 import numpy as np
 from physicalai.robot import SO101, SharedRobot
 
-RATE_HZ = 30.0
-SPEED = 1.0  # Normalized units per second.
+DEFAULT_GOAL_TIME = 3.0
 TOLERANCE = 0.25
 SETTLE_TIMEOUT_S = 15.0
 STATE_TIMEOUT_S = 2.0
@@ -38,28 +37,22 @@ def fresh_pose(robot: SO101 | SharedRobot, after: float = float("-inf")) -> tupl
     raise TimeoutError("Robot observations stopped advancing")
 
 
-def align_leader(leader: SO101 | SharedRobot, start: np.ndarray, target: np.ndarray, timestamp: float) -> None:
-    """Ramp bounded targets and require the measured leader pose to arrive."""
-    commanded = start.copy()
-    started_at = time.monotonic()
-    travel_time = float(np.max(np.abs(target - start))) / SPEED
-    deadline = started_at + travel_time + SETTLE_TIMEOUT_S
+def align_leader(leader: SO101 | SharedRobot, target: np.ndarray, timestamp: float, goal_time: float) -> None:
+    """Send one native timed move and monitor fresh measured positions."""
+    leader.send_action(target, goal_time=goal_time)
+    print(f"Command: {target.round(3).tolist()}  goal_time: {goal_time:.2f}s", flush=True)
+    deadline = time.monotonic() + goal_time + SETTLE_TIMEOUT_S
     next_report = 0.0
     while time.monotonic() < deadline:
         actual, timestamp = fresh_pose(leader, timestamp)
         error = float(np.max(np.abs(target - actual)))
         if time.monotonic() >= next_report:
-            print(f"Command: {commanded.round(3).tolist()}", flush=True)
             print(f"Leader:  {actual.round(3).tolist()}  max error: {error:.3f}", flush=True)
             next_report = time.monotonic() + 1.0
         if error <= TOLERANCE:
             print("PASS: measured leader pose reached the follower target")
             return
-        # Follow elapsed time so encoder rounding and slow reads cannot stall the ramp.
-        travel = SPEED * (time.monotonic() - started_at)
-        commanded = start + np.clip(target - start, -travel, travel)
-        leader.send_action(commanded, goal_time=1.0 / RATE_HZ)
-        time.sleep(1.0 / RATE_HZ)
+        time.sleep(0.05)
     raise TimeoutError("Leader did not reach the follower target; see the measured errors above")
 
 
@@ -70,12 +63,15 @@ def main() -> None:
     parser.add_argument("--leader-calibration", required=True, type=Path)
     parser.add_argument("--follower-port", required=True)
     parser.add_argument("--follower-calibration", required=True, type=Path)
+    parser.add_argument("--goal-time", type=float, default=DEFAULT_GOAL_TIME, help="Requested move duration in seconds")
     parser.add_argument(
         "--shared",
         action="store_true",
         help="Use SharedRobot instead of direct serial control",
     )
     args = parser.parse_args()
+    if not np.isfinite(args.goal_time) or args.goal_time <= 0:
+        parser.error("--goal-time must be finite and positive")
     if Path(args.leader_port).resolve() == Path(args.follower_port).resolve():
         parser.error("Leader and follower must use different serial ports")
     for calibration in (args.leader_calibration, args.follower_calibration):
@@ -122,10 +118,7 @@ def main() -> None:
         if gap <= TOLERANCE:
             print("Already at the follower pose; no leader torque requested.")
             return
-        print(
-            f"Maximum gap: {gap:.3f}; speed: {SPEED:.1f} units/s; "
-            f"estimated travel: {gap / SPEED:.1f}s plus up to {SETTLE_TIMEOUT_S:.0f}s to settle"
-        )
+        print(f"Maximum gap: {gap:.3f}; requested travel: {args.goal_time:.2f}s (approximate)")
         if input("Check the path is clear and the leader is supported for torque-off. Type ALIGN to move: ") != "ALIGN":
             raise SystemExit("Cancelled before enabling leader torque")
 
@@ -133,8 +126,8 @@ def main() -> None:
         torque_requested = True
         leader.set_torque(enabled=True)
         print("Leader torque ON acknowledged", flush=True)
-        start, timestamp = fresh_pose(leader, timestamp)
-        align_leader(leader, start, target, timestamp)
+        _, timestamp = fresh_pose(leader, timestamp)
+        align_leader(leader, target, timestamp, args.goal_time)
     finally:
         if torque_requested:
             try:

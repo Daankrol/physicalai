@@ -421,6 +421,129 @@ class TestSO101Action:
 
         mock_sdk.GroupSyncWrite.return_value.txPacket.assert_called_once()
 
+    def test_goal_time_writes_native_position_and_per_joint_speed(self, mock_sdk: MagicMock) -> None:
+        from physicalai.robot.so101 import SO101
+
+        robot = SO101.uncalibrated(port="/dev/ttyUSB0")
+        robot.connect()
+        mock_sdk.GroupSyncRead.return_value.getData.side_effect = [1000, 2000, 2048, 3000, 2000, 1500]
+        target = np.array([1600, 1400, 2048, 3003, 1000, 1800], dtype=np.float32)
+
+        robot.send_action(target, goal_time=3.0)
+
+        mock_sdk.GroupSyncWrite.assert_called_once_with(
+            mock_sdk.PortHandler.return_value, mock_sdk.PacketHandler.return_value, 42, 6
+        )
+        writes = mock_sdk.GroupSyncWrite.return_value.addParam.call_args_list
+        for index, speed in enumerate([200, 200, 1, 1, 333, 100]):
+            position = int(target[index])
+            assert writes[index].args == (
+                index + 1,
+                [position & 0xFF, (position >> 8) & 0xFF, 0, 0, speed & 0xFF, (speed >> 8) & 0xFF],
+            )
+        mock_sdk.GroupSyncWrite.return_value.txPacket.assert_called_once()
+
+    def test_short_goal_time_slows_all_joints_to_the_speed_limit(self, mock_sdk: MagicMock) -> None:
+        from physicalai.robot.so101 import SO101
+        from physicalai.robot.so101.constants import MAX_SPEED_TICKS_S
+
+        robot = SO101.uncalibrated(port="/dev/ttyUSB0")
+        robot.connect()
+        mock_sdk.GroupSyncRead.return_value.getData.return_value = 0
+        robot.send_action(np.array([4095, 2048, 0, 0, 0, 0], dtype=np.float32), goal_time=0.001)
+
+        writes = mock_sdk.GroupSyncWrite.return_value.addParam.call_args_list
+        speeds = [call.args[1][4] | (call.args[1][5] << 8) for call in writes]
+        assert speeds[0] == MAX_SPEED_TICKS_S
+        assert speeds[1] == int(2048 * MAX_SPEED_TICKS_S / 4095)
+        assert speeds[2:] == [1] * 4
+
+    @pytest.mark.parametrize("goal_time", [0.0, -1.0, np.nan, np.inf, -np.inf])
+    def test_invalid_goal_time_does_not_send_a_command(self, mock_sdk: MagicMock, goal_time: float) -> None:
+        robot = _create_robot(mock_sdk)
+        robot.connect()
+
+        with pytest.raises(ValueError, match="goal_time"):
+            robot.send_action(np.zeros(6, dtype=np.float32), goal_time=goal_time)
+
+        mock_sdk.GroupSyncRead.return_value.txRxPacket.assert_not_called()
+        mock_sdk.GroupSyncWrite.return_value.txPacket.assert_not_called()
+
+    @pytest.mark.parametrize("value", [np.nan, np.inf, -np.inf])
+    def test_nonfinite_action_does_not_send_a_command(self, mock_sdk: MagicMock, value: float) -> None:
+        robot = _create_robot(mock_sdk)
+        robot.connect()
+
+        with pytest.raises(ValueError, match="finite"):
+            robot.send_action(np.full(6, value, dtype=np.float32), goal_time=3.0)
+
+        mock_sdk.GroupSyncRead.return_value.txRxPacket.assert_not_called()
+        mock_sdk.GroupSyncWrite.return_value.txPacket.assert_not_called()
+
+    def test_each_command_updates_speed_and_disconnect_clears_the_limit(self, mock_sdk: MagicMock) -> None:
+        from physicalai.robot.so101 import SO101
+
+        robot = SO101.uncalibrated(port="/dev/ttyUSB0")
+        robot.connect()
+        robot.send_action(np.full(6, 2648, dtype=np.float32), goal_time=3.0)
+        robot.send_action(np.full(6, 2348, dtype=np.float32), goal_time=0.1)
+        robot.disconnect()
+
+        writes = mock_sdk.GroupSyncWrite.return_value.addParam.call_args_list
+        speeds = [call.args[1][4] | (call.args[1][5] << 8) for call in writes]
+        assert speeds == [200] * 6 + [3000] * 6 + [0] * 6
+        assert all(call.args[1][:2] == [0, 8] for call in writes[-6:])
+
+    def test_goal_time_uses_calibration_and_clamped_targets(self, mock_sdk: MagicMock) -> None:
+        robot = _create_robot(mock_sdk)
+        robot.connect()
+        robot.send_action(np.full(6, 1000.0, dtype=np.float32), goal_time=3.0)
+
+        writes = mock_sdk.GroupSyncWrite.return_value.addParam.call_args_list
+        for index, calibration in enumerate(SAMPLE_CALIBRATION.values()):
+            payload = writes[index].args[1]
+            assert payload[0] | (payload[1] << 8) == calibration["range_max"]
+            assert payload[4] | (payload[5] << 8) == max(1, abs(calibration["range_max"] - 2048) // 3)
+
+    @pytest.mark.parametrize("position", [-1, 4096, 65535])
+    def test_invalid_encoder_position_does_not_write_a_command(self, mock_sdk: MagicMock, position: int) -> None:
+        robot = _create_robot(mock_sdk)
+        robot.connect()
+        mock_sdk.GroupSyncRead.return_value.getData.return_value = position
+
+        with pytest.raises(ConnectionError, match="encoder range"):
+            robot.send_action(np.zeros(6, dtype=np.float32), goal_time=3.0)
+
+        mock_sdk.GroupSyncWrite.return_value.txPacket.assert_not_called()
+
+    def test_failed_parameter_preparation_does_not_transmit(self, mock_sdk: MagicMock) -> None:
+        robot = _create_robot(mock_sdk)
+        robot.connect()
+        mock_sdk.GroupSyncWrite.return_value.addParam.return_value = False
+
+        with pytest.raises(ConnectionError, match="sync write"):
+            robot.send_action(np.zeros(6, dtype=np.float32), goal_time=3.0)
+
+        mock_sdk.GroupSyncWrite.return_value.txPacket.assert_not_called()
+
+    def test_position_write_failure_is_reported(self, mock_sdk: MagicMock) -> None:
+        robot = _create_robot(mock_sdk)
+        robot.connect()
+        mock_sdk.GroupSyncWrite.return_value.txPacket.return_value = 2
+
+        with pytest.raises(ConnectionError, match="Sync write failed"):
+            robot.send_action(np.zeros(6, dtype=np.float32), goal_time=3.0)
+
+    def test_position_read_failure_does_not_write_a_motion_command(self, mock_sdk: MagicMock) -> None:
+        robot = _create_robot(mock_sdk)
+        robot.connect()
+        mock_sdk.GroupSyncRead.return_value.txRxPacket.return_value = 2
+
+        with pytest.raises(ConnectionError, match="Sync read failed"):
+            robot.send_action(np.zeros(6, dtype=np.float32), goal_time=3.0)
+
+        mock_sdk.GroupSyncWrite.return_value.txPacket.assert_not_called()
+
     def test_send_action_leader_raises_while_torque_is_off(self, mock_sdk: MagicMock) -> None:
         """Leader motion is rejected unless torque has been explicitly enabled."""
         robot = _create_robot(mock_sdk, role="leader")

@@ -153,18 +153,34 @@ uv run --no-sync python examples/runtime/align_so101_leader.py \
   --leader-port /dev/serial/by-id/LEADER \
   --leader-calibration /path/to/leader-calibration.json \
   --follower-port /dev/serial/by-id/FOLLOWER \
-  --follower-calibration /path/to/follower-calibration.json
+  --follower-calibration /path/to/follower-calibration.json \
+  --goal-time 3.0
 ```
 
 Replace the port and calibration placeholders. The script requires `CONNECT`
 before opening ports and `ALIGN` before enabling leader torque. It prints the
-joint order, follower target, commanded leader targets, measured leader pose,
-and maximum position error.
-Commanded targets advance at 1 normalized unit per second. The deadline covers
-the full travel distance plus 15 seconds for settling, rather than cutting off
-longer moves after 15 seconds. The script prints the estimated travel time;
-large gaps can take minutes at this deliberately slow speed. Success requires
-fresh measured positions within 0.25 units of the target.
+joint order, follower target, measured leader pose, and maximum position error.
+It sends one `leader.send_action(target, goal_time=3.0)` command, then only polls
+feedback. Change `--goal-time` to request a different duration; the default is
+three seconds. There is no Python loop sending intermediate position targets.
+
+The SO101 driver reads current encoder positions and calculates per-joint speed
+limits from the requested duration. It sends calibrated target positions and
+speed limits together in one synchronized packet, matching Feetech's
+[position/speed command format](https://github.com/ftservo/FTServo_Python/blob/main/scservo_sdk/sms_sts.py).
+STS3215 speed is expressed in encoder steps per second, as documented by
+[Waveshare](https://www.waveshare.com/wiki/ST3215_Servo#Product_Usage_Tutorial).
+The existing acceleration configuration remains unchanged. Every position
+command updates the speed limits, so a timed move does not leave a stale speed
+limit on subsequent streamed actions or the disconnect hold.
+
+`goal_time` is approximate, not a guarantee of simultaneous arrival. The driver
+extends the common duration when the requested speed exceeds its hardware cap.
+Integer speed resolution and the minimum nonzero speed of one encoder step
+per second also affect timing, especially for small moves. Acceleration and
+load can delay arrival further. The check allows 15 seconds beyond the requested
+duration for settling and requires fresh measured positions within 0.25
+normalized units before it reports success and releases leader torque.
 
 Run the same command again with `--shared` to exercise `SharedRobot`. Let the
 first command finish and any shared owners exit before rerunning or opening
