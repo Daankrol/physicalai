@@ -131,24 +131,19 @@ that the SO-101 driver rejects leader actions while torque is off. If torque-off
 is not acknowledged, stop and inspect the arm before continuing; do not assume
 the software state matches the hardware.
 
-## SO101 timed leader motion
+## SO101 leader motion
 
-A connected SO101 leader accepts `send_action(target, goal_time=3.0)` after
+A connected SO101 leader accepts `send_action(target)` after
 `set_torque(enabled=True)` succeeds. `SharedRobot` forwards the same command to
 the owner. Targets use the arm's own calibrated joint coordinates.
 
-The driver reads current encoder positions and sends each target and its speed
-limit in one synchronized packet, using Feetech's
-[position/speed command format](https://github.com/ftservo/FTServo_Python/blob/main/scservo_sdk/sms_sts.py).
-STS3215 speeds are in encoder steps per second, as documented by
-[Waveshare](https://www.waveshare.com/wiki/ST3215_Servo#Product_Usage_Tutorial).
-Every command updates the speed limits; the disconnect hold clears them. The
-existing acceleration configuration remains unchanged.
-
-`goal_time` is approximate. The driver extends the common duration rather than
-exceeding its hardware speed cap. Integer speed resolution, acceleration, and
-load affect actual arrival, especially for small moves. Callers must check
-fresh measured positions instead of treating elapsed time as proof of arrival.
+The driver writes only the two goal-position bytes per servo, including when
+holding position on disconnect. It does not change servo speed limits.
+`goal_time` remains accepted for protocol compatibility but does not set SO101
+motion timing. To move gradually, callers must pace small intermediate position
+targets in software. Bus latency, existing servo speed limits, acceleration, and
+load affect arrival; callers must check fresh measured positions rather than
+treating elapsed time as proof of arrival.
 
 Keep the full movement path clear. A leader-alignment caller must hold the
 follower, confirm compatible coordinates and matching poses, disable leader

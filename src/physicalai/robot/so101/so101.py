@@ -48,7 +48,6 @@ from physicalai.robot.device_ids import device_id_from_serial_port
 from physicalai.robot.so101.calibration import SO101Calibration
 from physicalai.robot.so101.constants import (
     MAX_SPEED_DEG_S,
-    MAX_SPEED_TICKS_S,
     POSITION_MODE,
     PROTOCOL_VERSION,
     SO101_JOINT_ORDER,
@@ -398,7 +397,7 @@ class SO101(Robot):
                 port_handler,
                 packet_handler,
                 STS3215Addr.GOAL_POSITION,
-                STS3215Len.GOAL_POSITION + STS3215Len.GOAL_TIME + STS3215Len.GOAL_SPEED,
+                STS3215Len.GOAL_POSITION,
             )
 
             self._connection = _SO101Connection(
@@ -518,20 +517,18 @@ class SO101(Robot):
         )
 
     def send_action(self, action: np.ndarray, *, goal_time: float = 0.1) -> None:
-        """Send one synchronized position-and-speed command without blocking.
+        """Send synchronized positions without changing servo speed settings.
 
         Args:
             action: Array of shape ``(6,)`` with target joint positions in
                 the configured :attr:`unit`, or raw ticks in explicit uncalibrated mode.
-            goal_time: Requested travel time in seconds. Per-joint speed limits
-                approximate this duration; acceleration, load, and speed quantization
-                affect actual arrival. Requests above the speed limit take longer.
+            goal_time: Accepted for protocol compatibility, but does not set
+                servo timing. Callers must pace intermediate position targets.
 
         Raises:
             RuntimeError: If the robot is a leader with torque disabled.
             ValueError: If the action shape or numeric values are invalid, or
                 ``goal_time`` is not finite and positive.
-            ConnectionError: If reading the current pose or sending the command fails.
         """
         if self.role == "leader" and not self._torque_enabled:
             msg = "Cannot send actions to a leader arm while torque is disabled. Enable torque first."
@@ -554,15 +551,7 @@ class SO101(Robot):
             if self._calibration is not None
             else np.round(np.clip(action, 0, TICKS_PER_REVOLUTION - 1)).astype(np.int32)
         )
-        current = self._read_joint_positions()
-        if np.any(current < 0) or np.any(current >= TICKS_PER_REVOLUTION):
-            msg = "Servo returned a position outside the encoder range"
-            raise ConnectionError(msg)
-        distance = np.abs(ticks - current)
-        duration = max(goal_time, float(np.max(distance)) / MAX_SPEED_TICKS_S)
-        # Speed zero means unlimited, including for joints already at their target.
-        speeds = np.clip(np.floor(distance / duration), 1, MAX_SPEED_TICKS_S).astype(np.int32)
-        self._write_joint_positions(ticks, speeds)
+        self._write_joint_positions(ticks)
 
     def is_connected(self) -> bool:
         """Check if robot is connected.
@@ -786,7 +775,7 @@ class SO101(Robot):
         under gravity when the connection is closed.
         """
         raw = self._read_joint_positions()
-        self._write_joint_positions(raw.astype(np.int32), np.zeros(self.NUM_JOINTS, dtype=np.int32))
+        self._write_joint_positions(raw.astype(np.int32))
         self._set_torque(enabled=True)
 
     def _read_joint_positions(self) -> np.ndarray:
@@ -820,14 +809,16 @@ class SO101(Robot):
                 STS3215Addr.PRESENT_POSITION,
                 STS3215Len.PRESENT_POSITION,
             )
+        if np.any(positions < 0) or np.any(positions >= TICKS_PER_REVOLUTION):
+            msg = "Servo returned a position outside the encoder range"
+            raise ConnectionError(msg)
         return positions
 
-    def _write_joint_positions(self, ticks: np.ndarray, speeds: np.ndarray) -> None:
-        """Bulk-write goal positions and speeds in one synchronized packet.
+    def _write_joint_positions(self, ticks: np.ndarray) -> None:
+        """Bulk-write only goal positions in one synchronized packet.
 
         Args:
             ticks: Int32 array of goal tick positions, shape ``(6,)``.
-            speeds: Int32 array of speed limits in ticks/s; zero means unlimited.
 
         Raises:
             ConnectionError: If sync write fails.
@@ -842,9 +833,7 @@ class SO101(Robot):
         for i, name in enumerate(self.JOINT_ORDER):
             servo_id = self.servo_ids[name]
             position = int(ticks[i])
-            speed = int(speeds[i])
-            # STS3215 position mode uses speed, not the intervening time/PWM bytes.
-            param = [position & 0xFF, (position >> 8) & 0xFF, 0, 0, speed & 0xFF, (speed >> 8) & 0xFF]
+            param = [position & 0xFF, (position >> 8) & 0xFF]
             if not conn.group_sync_write.addParam(servo_id, param):
                 msg = f"Failed to add servo '{name}' (ID {servo_id}) to sync write"
                 raise ConnectionError(msg)
