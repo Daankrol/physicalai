@@ -87,70 +87,64 @@ Notes:
 - Actions are **absolute joint targets**, delivered latest-wins and
   fire-and-forget. When no action is pending, the owner holds the last
   commanded position.
+- `get_fresh_observation()` requests a new capture on the owner thread. It does
+  not use the subscriber's cached stream or a read already in flight. Use it for
+  causal checks after torque changes; counting subsequent stream packets is not
+  enough. Buffered drivers can provide the same method, and composites recurse
+  into their components. Errors and unsupported older owners raise rather than
+  falling back to cached state. The read-only `/state` query accepts no payload
+  and has a bounded pending queue.
 - `set_torque(enabled=...)` is a synchronous owner request and reports
   whether the driver applied it; it raises when the driver has no torque
-  control. SO-101 leaders start with torque off and accept position actions
-  only after torque is explicitly enabled.
+  control. Driver-specific torque gating belongs to the robot plugin.
 
-## Smoke-test SO-101 leader torque control
+## Declare handover capabilities
 
-Stop Studio and other controllers using the arm. Use a clear workspace, keep
-the emergency stop reachable, and provide the connected arm's own calibration
-JSON. The script uses leader mode even on follower hardware, so support the arm
-before connecting: torque-off can let it fall under gravity. Use a fresh owner
-name and start without an intentional movement:
+Any robot plugin can expose an optional `handover_capabilities` property returning
+`physicalai.robot.HandoverCapabilities`. For example, a two-joint position driver
+can declare:
 
-```bash
-uv sync --extra transport --extra so101 --extra tests
-uv run --no-sync pytest tests/unit/robot/test_so101.py tests/unit/robot/transport/test_owner_worker.py tests/unit/robot/transport/test_owner_handshake.py tests/unit/robot/transport/test_shared_robot.py -q
-uv run --no-sync python examples/runtime/shared_robot_torque_smoke.py \
-  --port /dev/serial/by-id/<leader> \
-  --calibration ~/.cache/physicalai/robots/<leader-calibration>.json \
-  --name so101-torque-test
+```python
+from physicalai.robot import HandoverCapabilities
+
+@property
+def handover_capabilities(self) -> HandoverCapabilities:
+    return HandoverCapabilities(
+        position_space="my-arm.radians.v1",
+        position_tolerance=(0.01, 0.01),
+        max_position_step=(0.005, 0.005),
+        supports_alignment=True,
+    )
 ```
 
-The script waits for you at each stage:
+Use the same `position_space` only for matching units, directions, zero convention,
+and gripper mapping. Callers must also compare ordered joint names. Do not put
+ports, calibration paths, or per-device calibration data in this identifier.
+The two limit vectors contain one finite positive value per joint, in its own
+coordinates. Mixed angular and linear joints can use different limits.
+`max_position_step` bounds extra follower catch-up per control tick, not new
+leader motion or absolute teleoperation speed.
 
-1. Type `CONNECT` after supporting the arm. A newly connected leader starts
-   with torque off.
-2. Type `ENABLE`. After the current-pose command, the script stays torque-on
-   at the `DISABLE` prompt so you can observe it. Do not force the joints.
-3. Support the arm and type `DISABLE`. Check its torque-off behavior while
-   the script waits for Enter before disconnecting.
+`supports_alignment=True` promises position commands and an acknowledged
+`set_torque(enabled=...)` method. Enable must report partial failures; disable
+must attempt every actuator. Unsupported or passive leaders can declare compatible
+coordinates with `supports_alignment=False` for an operator-controlled handover.
+Return `None`, or omit the property, when coordinate compatibility is unknown.
 
-To test a small physical movement, pass one joint and a delta of at most one
-normalized unit, for example `--joint shoulder_pan --delta 1`. The script also
-requires `MOVE` before sending that target, then waits for the measured pose
-to arrive. It still waits at `DISABLE` afterwards. Omit `--joint` to send only
-the current pose. Ctrl+C or a closed terminal input attempts torque-off cleanup;
-force-killing the process cannot guarantee cleanup.
+The owner validates these declarations and publishes them in `/metadata`.
+`SharedRobot.handover_capabilities` exposes the validated result after connection;
+it returns `None` for older owners without declarations. `CompositeRobot` and
+`BimanualRobot` combine component coordinate identifiers and limits in joint order.
+They advertise powered alignment only when every component supports it, roll back
+partial torque enable, and attempt every component during torque-off. Their
+observation timestamp advances only when every component advances, so one live
+arm cannot hide stale feedback from another. Cached reads retain the complete
+accepted snapshot, not older positions paired with a newer capture timestamp.
 
-`SharedRobot.send_action()` is fire-and-forget. The no-movement check confirms
-the torque request/reply and action publication, not that the owner applied the
-action. The optional small movement checks the observed pose. Unit tests verify
-that the SO-101 driver rejects leader actions while torque is off. If torque-off
-is not acknowledged, stop and inspect the arm before continuing; do not assume
-the software state matches the hardware.
-
-## SO101 leader motion
-
-A connected SO101 leader accepts `send_action(target)` after
-`set_torque(enabled=True)` succeeds. `SharedRobot` forwards the same command to
-the owner. Targets use the arm's own calibrated joint coordinates.
-
-The driver writes only the two goal-position bytes per servo, including when
-holding position on disconnect. It does not change servo speed limits.
-`goal_time` remains accepted for protocol compatibility but does not set SO101
-motion timing. To move gradually, callers must pace small intermediate position
-targets in software. Bus latency, existing servo speed limits, acceleration, and
-load affect arrival; callers must check fresh measured positions rather than
-treating elapsed time as proof of arrival.
-
-Keep the full movement path clear. A leader-alignment caller must hold the
-follower, confirm compatible coordinates and matching poses, disable leader
-torque before handing control to the operator, and attempt torque-off on failure
-or cancellation. A failed torque-off acknowledgment leaves the physical state
-uncertain; inspect and secure the arm before continuing.
+Callers still own follower hold, fresh-feedback checks, bounded motion, explicit
+operator release, and torque-off cleanup. Declarations do not prove calibration
+quality or physical torque state. See the [SO-101 plugin hardware check](../../../packages/physicalai-so101-plugin/README.md#leader-motion-and-torque-check)
+for a model-specific example; the transport does not import that driver.
 
 ## Attach to a known owner
 

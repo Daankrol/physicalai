@@ -12,7 +12,8 @@ import time
 from pathlib import Path
 
 import numpy as np
-from physicalai.robot import SO101, SharedRobot
+from physicalai.robot import SharedRobot
+from physicalai_so101_plugin import SO101
 from physicalai.robot.interface import RobotObservation
 
 
@@ -97,7 +98,7 @@ def main() -> None:
         torque_requested = True
         robot.set_torque(enabled=True)
         print("PASS: torque enable acknowledged")
-        current = wait_for_fresh_observation(robot, before.timestamp, args.timeout)
+        current = robot.get_fresh_observation()
         target = np.asarray(current.joint_positions, dtype=np.float32).copy()
 
         if args.joint:

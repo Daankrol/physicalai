@@ -60,6 +60,7 @@ class FakeRobot:
         fail_observation_after: int | None = None,
         fail_disconnect: bool = False,
         disconnect_marker: str | None = None,
+        handover_capabilities: dict[str, object] | None = None,
         **_ignored: object,
     ) -> None:
         self._port = port
@@ -69,6 +70,11 @@ class FakeRobot:
         self._fail_observation_after = fail_observation_after
         self._fail_disconnect = fail_disconnect
         self._disconnect_marker = disconnect_marker
+        self.handover_capabilities = None
+        if handover_capabilities is not None:
+            from physicalai.robot.handover import HandoverCapabilities
+
+            self.handover_capabilities = HandoverCapabilities.model_validate(handover_capabilities)
         self._observation_calls = 0
         self._connected = False
         self._last_action = np.zeros(NUM_JOINTS, dtype=np.float32)
@@ -115,6 +121,9 @@ class FakeRobot:
             sensor_data={"velocities": np.ones(NUM_JOINTS, dtype=np.float32)},
         )
 
+    def get_fresh_observation(self) -> FakeObservation:
+        return self.get_observation()
+
     def send_action(self, action: np.ndarray, *, goal_time: float = 0.1) -> None:  # noqa: ARG002
         if not self._connected:
             msg = "Robot is not connected. Call connect() first."
@@ -141,6 +150,7 @@ class TorqueFakeRobot(FakeRobot):
         disconnect_marker: str | None = None,
         torque_marker: str | None = None,
         fail_torque: bool = False,
+        handover_capabilities: dict[str, object] | None = None,
     ) -> None:
         super().__init__(
             port,
@@ -150,6 +160,7 @@ class TorqueFakeRobot(FakeRobot):
             fail_observation_after=fail_observation_after,
             fail_disconnect=fail_disconnect,
             disconnect_marker=disconnect_marker,
+            handover_capabilities=handover_capabilities,
         )
         self._torque_marker = torque_marker
         self._fail_torque = fail_torque

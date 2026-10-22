@@ -75,10 +75,13 @@ def _make_mock_sdk() -> MagicMock:
 def mock_sdk() -> Generator[MagicMock, None, None]:
     """Provide a mock scservo_sdk patched onto the SO101 module."""
     sdk = _make_mock_sdk()
-    sys.modules.pop("physicalai_so101_plugin.so101", None)
-    sys.modules.pop("physicalai_so101_plugin", None)
-    with patch.dict(sys.modules, {"scservo_sdk": sdk}):
-        import_module("physicalai_so101_plugin.so101")
+    with patch.multiple(
+        import_module("physicalai_so101_plugin.so101"),
+        PortHandler=sdk.PortHandler,
+        PacketHandler=sdk.PacketHandler,
+        GroupSyncRead=sdk.GroupSyncRead,
+        GroupSyncWrite=sdk.GroupSyncWrite,
+    ):
         yield sdk
 
 
@@ -123,6 +126,34 @@ def _create_robot(
 
 class TestSO101Construction:
     """Tests for SO101.__init__."""
+
+    @pytest.mark.parametrize("mode", ["normalized", "uncalibrated"])
+    def test_handover_requires_calibrated_normalized_coordinates(self, mock_sdk: MagicMock, mode: str) -> None:
+        from physicalai_so101_plugin import SO101
+
+        robot = (
+            SO101.uncalibrated(port="/dev/ttyUSB0")
+            if mode == "uncalibrated"
+            else _create_robot(mock_sdk)
+        )
+        capability = robot.handover_capabilities
+        if mode == "normalized":
+            assert capability is not None
+            assert capability.position_space == "so101.normalized.v1"
+            assert capability.supports_alignment
+            assert len(capability.max_position_step) == robot.NUM_JOINTS
+        else:
+            assert capability is None
+
+    def test_older_runtime_omits_capabilities_without_breaking_the_driver(
+        self, mock_sdk: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        robot = _create_robot(mock_sdk)
+        monkeypatch.setitem(sys.modules, "physicalai.robot.handover", None)
+        assert robot.handover_capabilities is None
+        robot.connect()
+        assert robot.get_observation().joint_positions.shape == (6,)
+        robot.disconnect()
 
     def test_invalid_role_raises(self, mock_sdk: MagicMock) -> None:
         """An invalid role string raises ValueError at construction."""
@@ -298,6 +329,19 @@ class TestSO101Lifecycle:
         with pytest.raises(ConnectionError, match="did not respond"):
             robot.connect()
 
+    def test_follower_disconnect_keeps_acknowledged_torque_without_reenabling(self, mock_sdk: MagicMock) -> None:
+        robot = _create_robot(mock_sdk)
+        robot.connect()
+        packet = mock_sdk.PacketHandler.return_value
+        packet.write1ByteTxRx.reset_mock()
+        packet.write1ByteTxRx.return_value = (2, 0)
+
+        robot.disconnect()
+
+        packet.write1ByteTxRx.assert_not_called()
+        mock_sdk.PortHandler.return_value.closePort.assert_called_once()
+        assert robot.torque_enabled
+
     def test_set_torque_delegates_to_internal_impl(self, mock_sdk: MagicMock) -> None:
         """Public set_torque forwards to internal torque implementation."""
         robot = _create_robot(mock_sdk)
@@ -425,7 +469,7 @@ class TestSO101Action:
     def test_commands_and_disconnect_preserve_servo_speeds(
         self, mock_sdk: MagicMock, role: Literal["leader", "follower"]
     ) -> None:
-        from physicalai.robot.so101 import SO101
+        from physicalai_so101_plugin import SO101
 
         robot = SO101.uncalibrated(port="/dev/ttyUSB0", role=role)
         robot.connect()
@@ -442,7 +486,7 @@ class TestSO101Action:
         assert all(call.args[2] != 46 for call in mock_sdk.PacketHandler.return_value.write2ByteTxRx.call_args_list)
 
     def test_goal_time_writes_only_positions(self, mock_sdk: MagicMock) -> None:
-        from physicalai.robot.so101 import SO101
+        from physicalai_so101_plugin import SO101
 
         robot = SO101.uncalibrated(port="/dev/ttyUSB0")
         robot.connect()
@@ -543,6 +587,20 @@ class TestSO101Action:
         with pytest.raises(RuntimeError, match="torque is disabled"):
             robot.send_action(np.zeros(6, dtype=np.float32))
 
+    def test_leader_enable_latches_current_pose_before_powering_servos(self, mock_sdk: MagicMock) -> None:
+        robot = _create_robot(mock_sdk, role="leader")
+        robot.connect()
+        trace = MagicMock()
+        trace.attach_mock(mock_sdk.GroupSyncRead.return_value, "read")
+        trace.attach_mock(mock_sdk.GroupSyncWrite.return_value, "write")
+        trace.attach_mock(mock_sdk.PacketHandler.return_value, "packet")
+
+        robot.set_torque(enabled=True)
+
+        operations = [entry[0] for entry in trace.mock_calls]
+        assert operations.index("write.txPacket") < operations.index("packet.write1ByteTxRx")
+        assert robot.torque_enabled
+
     def test_leader_can_move_only_between_torque_enable_and_disable(self, mock_sdk: MagicMock) -> None:
         robot = _create_robot(mock_sdk, role="leader")
         robot.connect()
@@ -550,6 +608,7 @@ class TestSO101Action:
 
         robot.set_torque(enabled=True)
         assert robot._torque_enabled is True  # noqa: SLF001
+        mock_sdk.GroupSyncWrite.return_value.reset_mock()
         robot.send_action(action)
         mock_sdk.GroupSyncWrite.return_value.txPacket.assert_called_once()
 

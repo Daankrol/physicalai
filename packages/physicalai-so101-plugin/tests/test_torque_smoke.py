@@ -15,7 +15,7 @@ import pytest
 
 @pytest.fixture
 def smoke_test(monkeypatch, tmp_path):
-    script = Path(__file__).resolve().parents[3] / "examples/runtime/shared_robot_torque_smoke.py"
+    script = Path(__file__).resolve().parents[1] / "examples/shared_robot_torque_smoke.py"
     main = runpy.run_path(str(script))["main"]
     robot = MagicMock()
     robot.joint_names = ["shoulder_pan"]
@@ -24,6 +24,7 @@ def smoke_test(monkeypatch, tmp_path):
         SimpleNamespace(joint_positions=np.array([0.0]), timestamp=2.0),
         SimpleNamespace(joint_positions=np.array([0.0]), timestamp=3.0),
     ]
+    robot.get_fresh_observation.side_effect = robot.get_observation
     monkeypatch.setitem(main.__globals__, "SO101", MagicMock())
     monkeypatch.setitem(main.__globals__, "SharedRobot", SimpleNamespace(from_config=lambda *args, **kwargs: robot))
     calibration = tmp_path / "calibration.json"
@@ -67,6 +68,7 @@ def test_waits_for_operator_to_inspect_both_torque_states(smoke_test, monkeypatc
     main()
 
     assert len(prompts) == (5 if move else 4)
+    robot.get_fresh_observation.assert_called_once()
     np.testing.assert_array_equal(robot.send_action.call_args.args[0], [1.0 if move else 0.0])
     assert "Torque is OFF" in prompts[-1]
     assert robot.set_torque.call_args_list == [call(enabled=True), call(enabled=False)]

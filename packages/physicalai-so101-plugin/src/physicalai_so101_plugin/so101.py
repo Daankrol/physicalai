@@ -59,6 +59,7 @@ from physicalai_so101_plugin.constants import (
 
 if TYPE_CHECKING:
     from physicalai.capture.frame import Frame
+    from physicalai.robot.handover import HandoverCapabilities
     from physicalai.robot.interface import RobotObservation
 
 SO101Unit = Literal["ticks", "normalized"]
@@ -218,6 +219,33 @@ class SO101(Robot):
     def joint_names(self) -> list[str]:
         """List of joint names in the order they appear in state/action arrays."""
         return self.JOINT_ORDER
+
+    @property
+    def torque_enabled(self) -> bool:
+        """Whether the most recent torque enable was acknowledged by every servo."""
+        return self._torque_enabled
+
+    @property
+    def handover_capabilities(self) -> HandoverCapabilities | None:
+        """Advertise only calibrated normalized coordinates for handover.
+
+        Raises:
+            ModuleNotFoundError: If a required dependency of the capability interface is missing.
+        """
+        if self._calibration is None or self.unit != "normalized":
+            return None
+        try:
+            from physicalai.robot.handover import HandoverCapabilities  # noqa: PLC0415
+        except ModuleNotFoundError as exc:
+            if exc.name != "physicalai.robot.handover":
+                raise
+            return None
+        return HandoverCapabilities(
+            position_space="so101.normalized.v1",
+            position_tolerance=(0.5,) * self.NUM_JOINTS,
+            max_position_step=(0.5,) * self.NUM_JOINTS,
+            supports_alignment=True,
+        )
 
     @property
     def device_ids(self) -> tuple[str, ...]:
@@ -742,6 +770,9 @@ class SO101(Robot):
             msg = f"enabled must be a bool, got {type(enabled).__name__}"
             raise TypeError(msg)
         conn = self._require_connection()
+        if enabled and self.role == "leader" and not self._torque_enabled:
+            # A free leader may have moved far from its previous goal while torque was off.
+            self._write_joint_positions(self._read_joint_positions())
         self._torque_enabled = False
         if enabled:
             try:
@@ -780,7 +811,8 @@ class SO101(Robot):
         """
         raw = self._read_joint_positions()
         self._write_joint_positions(raw.astype(np.int32))
-        self._set_torque(enabled=True)
+        if not self._torque_enabled:
+            self._set_torque(enabled=True)
 
     def _read_joint_positions(self) -> np.ndarray:
         """Bulk-read present positions from all servos via sync read.

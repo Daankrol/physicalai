@@ -30,8 +30,10 @@ import sys
 import threading
 import time
 import traceback
+from concurrent.futures import Future
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from functools import partial
+from typing import TYPE_CHECKING, Any, cast
 
 from loguru import logger
 
@@ -61,6 +63,8 @@ from physicalai.robot.transport._session import open_session  # noqa: PLC2701
 if TYPE_CHECKING:
     from collections.abc import Callable
     from types import FrameType
+
+    from physicalai.robot.interface import RobotObservation
 
 _MAX_CONSECUTIVE_FAILURES = 5
 _HEARTBEAT_INTERVAL_S = 30.0
@@ -184,6 +188,9 @@ def _build_metadata(
         The metadata dict shipped to discovering/validating subscribers.
         Deliberately excludes constructor kwargs, calibration paths, and
         any other construction secret.
+
+    Raises:
+        ValueError: If handover declarations or advertised torque support are invalid.
     """
     joint_names = list(driver.joint_names)
     metadata: dict[str, Any] = {
@@ -197,6 +204,18 @@ def _build_metadata(
         "num_joints": len(joint_names),
         "state_dim": state_dim,
     }
+    declaration = getattr(driver, "handover_capabilities", None)
+    if declaration is not None:
+        from physicalai.robot.handover import validate_handover_capabilities  # noqa: PLC0415
+
+        capabilities = validate_handover_capabilities(declaration, num_joints=len(joint_names))
+        if capabilities is None:
+            msg = "Expected handover capabilities"
+            raise ValueError(msg)
+        if capabilities.supports_alignment and not callable(getattr(driver, "set_torque", None)):
+            msg = "Powered alignment requires an acknowledged set_torque method"
+            raise ValueError(msg)
+        metadata["handover_capabilities"] = capabilities.model_dump(mode="json")
     if not config.allow_remote:
         metadata["device_ids"] = list(device_ids)
     return metadata
@@ -248,6 +267,44 @@ def _apply_pending_torque(driver: Robot, commands: queue.Queue[_TorqueCommand], 
     command.completed.set()
 
 
+def _capture_and_publish(
+    driver: Robot,
+    state_pub: Any,  # noqa: ANN401
+    capture_requests: queue.Queue[Future[bytes]] | None,
+) -> bool:
+    """Capture once and publish, satisfying at most one queued fresh-state request.
+
+    Returns:
+        Whether the driver read succeeded. Encoding and publication failures propagate.
+    """
+    capture = None
+    if capture_requests is not None:
+        with contextlib.suppress(queue.Empty):
+            capture = capture_requests.get_nowait()
+            if not capture.set_running_or_notify_cancel():
+                capture = None
+    try:
+        fresh_read = getattr(driver, "get_fresh_observation", None) if capture is not None else None
+        obs = cast(
+            "RobotObservation",
+            fresh_read() if callable(fresh_read) else driver.get_observation(),
+        )
+    except Exception as exc:  # noqa: BLE001
+        if capture is not None:
+            capture.set_exception(exc)
+        return False
+    payload = encode_state(
+        joint_positions=obs.joint_positions,
+        state=obs.state,
+        timestamp=obs.timestamp,
+        sensor_data=obs.sensor_data,
+    )
+    if capture is not None:
+        capture.set_result(payload)
+    state_pub.put(payload)
+    return True
+
+
 def _run_loop(
     driver: Robot,
     state_pub: Any,  # noqa: ANN401
@@ -258,6 +315,7 @@ def _run_loop(
     name: str,
     shutdown_event: threading.Event,
     torque_commands: queue.Queue[_TorqueCommand] | None = None,
+    capture_requests: queue.Queue[Future[bytes]] | None = None,
     on_event: Callable[[OwnerEvent], None] | None = None,
     heartbeat_interval_s: float = _HEARTBEAT_INTERVAL_S,
 ) -> OwnerExitReason:
@@ -278,6 +336,7 @@ def _run_loop(
         name: For logging.
         shutdown_event: Event requesting graceful loop termination.
         torque_commands: Optional queue of torque requests, applied on this thread.
+        capture_requests: Optional fresh-state requests, dequeued before the hardware read.
         on_event: Optional callback for subscriber transitions and heartbeat telemetry.
         heartbeat_interval_s: Seconds between heartbeat events.
 
@@ -303,25 +362,13 @@ def _run_loop(
         if torque_commands is not None:
             _apply_pending_torque(driver, torque_commands, name)
         _apply_pending_action(driver, action_sub, name)
-
-        try:
-            obs = driver.get_observation()
-        except Exception:  # noqa: BLE001
+        if not _capture_and_publish(driver, state_pub, capture_requests):
             consecutive_failures += 1
             if consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
                 logger.error(f"{consecutive_failures} consecutive read failures -- shutting down owner {name}")
                 return OwnerExitReason.CONSECUTIVE_READ_FAILURES
             continue
         consecutive_failures = 0
-
-        state_pub.put(
-            encode_state(
-                joint_positions=obs.joint_positions,
-                state=obs.state,
-                timestamp=obs.timestamp,
-                sensor_data=obs.sensor_data,
-            ),
-        )
 
         now = time.monotonic()
         # Runtime returns a MatchingStatus object (always truthy); the bool
@@ -368,7 +415,9 @@ class _Endpoints:
     action_sub: Any
     metadata_queryable: Any
     torque_queryable: Any
+    capture_queryable: Any
     torque_commands: queue.Queue[_TorqueCommand]
+    capture_requests: queue.Queue[Future[bytes]]
 
 
 def _connect_and_build_metadata(
@@ -407,12 +456,36 @@ class _ZenohEndpoints:
     action_sub: Any
     metadata_queryable: Any
     torque_queryable: Any
+    capture_queryable: Any
+
+
+def _answer_capture(
+    query: Any,  # noqa: ANN401
+    *,
+    name: str,
+    capture_requests: queue.Queue[Future[bytes]],
+) -> None:
+    """Queue a fresh capture; hardware reads stay on the owner loop."""
+    if query.payload is not None:
+        with contextlib.suppress(Exception):
+            query.reply_err(b"Fresh-state requests must not contain a payload")
+        return
+    capture: Future[bytes] = Future()
+    try:
+        capture_requests.put_nowait(capture)
+        query.reply(state_key(name), capture.result(timeout=_TORQUE_REQUEST_TIMEOUT_S))
+    except Exception:  # noqa: BLE001
+        capture.cancel()
+        logger.opt(exception=True).debug(f"Fresh-state capture failed for {name!r}")
+        with contextlib.suppress(Exception):
+            query.reply_err(b"Owner could not capture a fresh observation")
 
 
 def _declare_zenoh_endpoints(
     config: RobotOwnerConfig,
     metadata_bytes: bytes,
     torque_commands: queue.Queue[_TorqueCommand] | None = None,
+    capture_requests: queue.Queue[Future[bytes]] | None = None,
 ) -> _ZenohEndpoints:
     """Open the session and declare ``/state``, ``/action``, ``/metadata``, and ``/torque``.
 
@@ -420,6 +493,7 @@ def _declare_zenoh_endpoints(
         config: Owner settings, including the logical robot name.
         metadata_bytes: Encoded metadata response served to subscribers.
         torque_commands: Queue drained by the owner loop for serialized torque writes.
+        capture_requests: Bounded queue for captures started after the request.
 
     Returns:
         The declared Zenoh session and endpoints.
@@ -435,6 +509,8 @@ def _declare_zenoh_endpoints(
     torque_key_expr = torque_key(config.name)
     if torque_commands is None:
         torque_commands = queue.Queue()
+    if capture_requests is None:
+        capture_requests = queue.Queue(maxsize=1)
 
     def _answer_metadata(query: Any) -> None:  # noqa: ANN401
         # Static bytes computed once at startup — safe to serve from
@@ -480,6 +556,9 @@ def _declare_zenoh_endpoints(
         action_sub = session.declare_subscriber(action_key(config.name), zenoh.handlers.RingChannel(1))
         metadata_queryable = session.declare_queryable(metadata_key_expr, _answer_metadata)
         torque_queryable = session.declare_queryable(torque_key_expr, _answer_torque)
+        capture_queryable = session.declare_queryable(
+            state_key(config.name), partial(_answer_capture, name=config.name, capture_requests=capture_requests)
+        )
     except Exception as exc:
         if session is not None:
             with contextlib.suppress(Exception):
@@ -499,6 +578,7 @@ def _declare_zenoh_endpoints(
         action_sub=action_sub,
         metadata_queryable=metadata_queryable,
         torque_queryable=torque_queryable,
+        capture_queryable=capture_queryable,
     )
 
 
@@ -546,7 +626,8 @@ def _startup(config: RobotOwnerConfig) -> _Endpoints:
     try:
         metadata_bytes = _connect_and_build_metadata(config, driver, device_ids)
         torque_commands: queue.Queue[_TorqueCommand] = queue.Queue()
-        zenoh_endpoints = _declare_zenoh_endpoints(config, metadata_bytes, torque_commands)
+        capture_requests: queue.Queue[Future[bytes]] = queue.Queue(maxsize=1)
+        zenoh_endpoints = _declare_zenoh_endpoints(config, metadata_bytes, torque_commands, capture_requests)
     except Exception as exc:
         with contextlib.suppress(Exception):
             driver.disconnect()
@@ -564,7 +645,9 @@ def _startup(config: RobotOwnerConfig) -> _Endpoints:
         action_sub=zenoh_endpoints.action_sub,
         metadata_queryable=zenoh_endpoints.metadata_queryable,
         torque_queryable=zenoh_endpoints.torque_queryable,
+        capture_queryable=zenoh_endpoints.capture_queryable,
         torque_commands=torque_commands,
+        capture_requests=capture_requests,
     )
 
 
@@ -607,6 +690,7 @@ def run_owner(
             name=config.name,
             shutdown_event=shutdown_event,
             torque_commands=endpoints.torque_commands,
+            capture_requests=endpoints.capture_requests,
             on_event=on_event,
         )
         exit_code = 0 if reason in {OwnerExitReason.SHUTDOWN, OwnerExitReason.IDLE_TIMEOUT} else 1
@@ -623,6 +707,7 @@ def run_owner(
             exit_code = 1
         with contextlib.suppress(Exception):
             endpoints.torque_queryable.undeclare()
+            endpoints.capture_queryable.undeclare()
             endpoints.metadata_queryable.undeclare()
             logger.trace(f"Undeclared metadata and torque endpoints for {config.name!r}")
         with contextlib.suppress(Exception):
